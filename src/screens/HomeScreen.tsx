@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import CurrencyToggle from '../components/CurrencyToggle.jsx'
-import { useScreenAnimations } from '../lib/useScreenAnimations.js'
-import { formatMoney } from '../lib/money.js'
+import CurrencyToggle from '../components/CurrencyToggle.tsx'
+import { useScreenAnimations } from '../lib/useScreenAnimations.ts'
+import { formatMoney } from '../lib/money.ts'
+import type { Currency, ScreenId } from '../types'
 
-export default function HomeScreen({ active, cur, setCur, onGo }) {
-  const ref = useRef(null)
+interface Props {
+  active: boolean
+  cur: Currency
+  setCur: (c: Currency) => void
+  onGo: (id: ScreenId) => void
+}
+
+export default function HomeScreen({ active, cur, setCur, onGo }: Props) {
+  const ref = useRef<HTMLElement>(null)
   useScreenAnimations(ref, active)
 
   // 히어로 카운트업 (화면 활성화 시 0 → 목표)
@@ -12,11 +20,11 @@ export default function HomeScreen({ active, cur, setCur, onGo }) {
   const [heroDisplay, setHeroDisplay] = useState(heroKrw)
   useEffect(() => {
     if (!active) return
-    let raf
+    let raf = 0
     const dur = 900
-    let t0 = null
-    const step = (ts) => {
-      if (!t0) t0 = ts
+    let t0: number | null = null
+    const step = (ts: number) => {
+      if (t0 === null) t0 = ts
       const p = Math.min((ts - t0) / dur, 1)
       const e = 1 - Math.pow(1 - p, 3)
       setHeroDisplay(heroKrw * e)

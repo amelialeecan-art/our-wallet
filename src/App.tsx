@@ -1,20 +1,21 @@
 import { useState } from 'react'
-import PhoneFrame from './components/PhoneFrame.jsx'
-import TabBar from './components/TabBar.jsx'
-import HomeScreen from './screens/HomeScreen.jsx'
-import AddScreen from './screens/AddScreen.jsx'
-import AssetsScreen from './screens/AssetsScreen.jsx'
-import SpendingScreen from './screens/SpendingScreen.jsx'
-import BudgetScreen from './screens/BudgetScreen.jsx'
-import ScheduleScreen from './screens/ScheduleScreen.jsx'
-import SettingsScreen from './screens/SettingsScreen.jsx'
+import PhoneFrame from './components/PhoneFrame.tsx'
+import TabBar from './components/TabBar.tsx'
+import HomeScreen from './screens/HomeScreen.tsx'
+import AddScreen from './screens/AddScreen.tsx'
+import AssetsScreen from './screens/AssetsScreen.tsx'
+import SpendingScreen from './screens/SpendingScreen.tsx'
+import BudgetScreen from './screens/BudgetScreen.tsx'
+import ScheduleScreen from './screens/ScheduleScreen.tsx'
+import SettingsScreen from './screens/SettingsScreen.tsx'
+import type { Currency, ScreenId } from './types'
 
 export default function App() {
   // 현재 화면과 전역 표시 통화. (다음 단계에서 Context/localStorage로 승격 예정)
-  const [screen, setScreen] = useState('home')
-  const [cur, setCur] = useState('KRW')
+  const [screen, setScreen] = useState<ScreenId>('home')
+  const [cur, setCur] = useState<Currency>('KRW')
 
-  function go(id) {
+  function go(id: ScreenId) {
     setScreen(id)
     // 화면 전환 시 스크롤 최상단으로
     const el = document.getElementById(id)

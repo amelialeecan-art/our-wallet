@@ -1,4 +1,4 @@
-export default function SettingsScreen({ active }) {
+export default function SettingsScreen({ active }: { active: boolean }) {
   return (
     <section className={'screen' + (active ? ' active' : '')} id="settings">
       <div className="stack">

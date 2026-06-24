@@ -1,4 +1,4 @@
-export default function ScheduleScreen({ active }) {
+export default function ScheduleScreen({ active }: { active: boolean }) {
   return (
     <section className={'screen' + (active ? ' active' : '')} id="schedule">
       <div className="stack">

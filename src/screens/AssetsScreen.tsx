@@ -1,6 +1,12 @@
-import { formatMoney } from '../lib/money.js'
+import { formatMoney } from '../lib/money.ts'
+import type { Currency } from '../types'
 
-export default function AssetsScreen({ active, cur }) {
+interface Props {
+  active: boolean
+  cur: Currency
+}
+
+export default function AssetsScreen({ active, cur }: Props) {
   return (
     <section className={'screen' + (active ? ' active' : '')} id="assets">
       <div className="stack">

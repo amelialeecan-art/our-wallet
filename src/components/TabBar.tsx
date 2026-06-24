@@ -1,5 +1,12 @@
+import type { ScreenId } from '../types'
+
+interface Props {
+  screen: ScreenId
+  onGo: (id: ScreenId) => void
+}
+
 // 떠 있는 물방울 하단 탭바. 가운데 + 버튼은 입력 화면으로 간다.
-export default function TabBar({ screen, onGo }) {
+export default function TabBar({ screen, onGo }: Props) {
   return (
     <nav className="tabbar">
       <button className={'tab' + (screen === 'home' ? ' on' : '')} onClick={() => onGo('home')}>

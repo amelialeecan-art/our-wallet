@@ -1,8 +1,18 @@
 import { useState } from 'react'
-import CurrencyToggle from '../components/CurrencyToggle.jsx'
-import { triggerSaved } from '../lib/feedback.js'
+import CurrencyToggle from '../components/CurrencyToggle.tsx'
+import { triggerSaved } from '../lib/feedback.ts'
+import type { Currency } from '../types'
 
-const QUICK = [
+type Who = 'us' | 'hy' | 'ta'
+
+interface QuickItem {
+  name: string
+  amt: number
+  cat: string
+  who?: Who
+}
+
+const QUICK: QuickItem[] = [
   { name: '점심', amt: 12000, cat: '식비' },
   { name: '카페', amt: 6000, cat: '카페' },
   { name: '지하철', amt: 1500, cat: '교통' },
@@ -12,17 +22,23 @@ const QUICK = [
 ]
 const CATS = ['식비', '카페', '교통', '데이트', '쇼핑', '집/생활', '기타']
 
-export default function AddScreen({ active, cur, setCur }) {
+interface Props {
+  active: boolean
+  cur: Currency
+  setCur: (c: Currency) => void
+}
+
+export default function AddScreen({ active, cur, setCur }: Props) {
   const [raw, setRaw] = useState('')
   const [keypadOpen, setKeypadOpen] = useState(false)
-  const [who, setWho] = useState('us')
-  const [cat, setCat] = useState(null)
+  const [who, setWho] = useState<Who>('us')
+  const [cat, setCat] = useState<string | null>(null)
 
   const n = raw === '' ? 0 : parseInt(raw, 10)
   const amtCur = cur === 'KRW' ? '₩' : '$'
   const amtVal = n.toLocaleString(cur === 'KRW' ? 'ko-KR' : 'en-US')
 
-  function pressKey(k) {
+  function pressKey(k: string) {
     setRaw((prev) => {
       let next = prev
       if (k === 'del') next = prev.slice(0, -1)
@@ -34,7 +50,7 @@ export default function AddScreen({ active, cur, setCur }) {
     })
   }
 
-  function pickQuick(q) {
+  function pickQuick(q: QuickItem) {
     setRaw(String(q.amt))
     setCat(q.cat)
     if (q.who) setWho(q.who)

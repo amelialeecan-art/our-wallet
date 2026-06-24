@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-const TABS = [
+type TabKey = 'who' | 'cat' | 'pay' | 'acc' | 'cur'
+
+const TABS: { key: TabKey; label: string }[] = [
   { key: 'who', label: '사용대상별' },
   { key: 'cat', label: '카테고리별' },
   { key: 'pay', label: '결제수단별' },
@@ -8,9 +10,9 @@ const TABS = [
   { key: 'cur', label: '통화별' },
 ]
 
-export default function SpendingScreen({ active }) {
-  const ref = useRef(null)
-  const [tab, setTab] = useState('who')
+export default function SpendingScreen({ active }: { active: boolean }) {
+  const ref = useRef<HTMLElement>(null)
+  const [tab, setTab] = useState<TabKey>('who')
 
   // 화면 활성화 또는 탭 전환 시 켜진 패널의 막대/액체를 다시 채운다.
   useEffect(() => {
@@ -18,11 +20,11 @@ export default function SpendingScreen({ active }) {
     const panel = ref.current.querySelector('.panel.on')
     if (!panel) return
     const t = setTimeout(() => {
-      panel.querySelectorAll('.fill[data-w]').forEach((f) => {
+      panel.querySelectorAll<HTMLElement>('.fill[data-w]').forEach((f) => {
         f.style.width = '0%'
         requestAnimationFrame(() => setTimeout(() => (f.style.width = f.dataset.w + '%'), 40))
       })
-      panel.querySelectorAll('.lq[data-h]').forEach((l) => {
+      panel.querySelectorAll<HTMLElement>('.lq[data-h]').forEach((l) => {
         l.style.height = '0%'
         requestAnimationFrame(() => setTimeout(() => (l.style.height = l.dataset.h + '%'), 40))
       })
@@ -96,7 +98,7 @@ export default function SpendingScreen({ active }) {
   )
 }
 
-function FillRow({ label, pct, color }) {
+function FillRow({ label, pct, color }: { label: string; pct: number; color?: string }) {
   return (
     <div className="fillrow">
       <div className="fillhead"><span>{label}</span><span className="pct">{pct}%</span></div>

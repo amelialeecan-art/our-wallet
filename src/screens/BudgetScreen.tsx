@@ -1,8 +1,8 @@
 import { useRef } from 'react'
-import { useScreenAnimations } from '../lib/useScreenAnimations.js'
+import { useScreenAnimations } from '../lib/useScreenAnimations.ts'
 
-export default function BudgetScreen({ active }) {
-  const ref = useRef(null)
+export default function BudgetScreen({ active }: { active: boolean }) {
+  const ref = useRef<HTMLElement>(null)
   useScreenAnimations(ref, active)
 
   return (

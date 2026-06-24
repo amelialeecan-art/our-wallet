@@ -1,7 +1,7 @@
 // 저장 피드백: 물방울이 튀어오르고 토스트가 뜬다. (프로토타입 동작 보존)
-let toastTimer
+let toastTimer: ReturnType<typeof setTimeout>
 
-export function triggerSaved(message = '저장됐어요') {
+export function triggerSaved(message = '저장됐어요'): void {
   const phone = document.getElementById('phone')
   if (phone) {
     const s = document.createElement('div')
