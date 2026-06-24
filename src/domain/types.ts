@@ -20,6 +20,9 @@ export type Role = 'hyeonsu' | 'tanner'
 // 거래 종류
 export type TransactionType = 'expense' | 'income' | 'transfer' | 'adjustment'
 
+// 거래 출처: 직접 입력 / 반복항목 반영
+export type SourceKind = 'manual' | 'recurring'
+
 // 사용대상 = 누구를 위한 지출/거래였나 (분석용 라벨)
 export type UsedFor = 'shared' | 'hyeonsu' | 'tanner'
 
@@ -103,6 +106,10 @@ export interface Transaction {
   accountId?: string // (선택) 직접 연결된 보관 위치
   recordedBy: RecordedBy // 누가 입력했는지
   memo?: string
+  // 출처 (반복항목에서 반영된 거래 추적용)
+  sourceKind?: SourceKind
+  sourceRecurringItemId?: string
+  sourceLabel?: string
   createdAt: string
   updatedAt: string
 }

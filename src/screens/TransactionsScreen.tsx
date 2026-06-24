@@ -35,7 +35,21 @@ export default function TransactionsScreen({ active, onGo, onEdit }: Props) {
     const ps = psById.get(t.paymentSourceId)
     const cls = colorClass(t.usedFor)
     const cat = tEnum('category', t.categoryId, lang)
-    const sub = [cat, ps ? paymentSourceTitle(ps, lang) : null, tEnum('recordedBy', t.recordedBy, lang), t.date.slice(5)]
+    // 반복항목으로 생성된 거래는 출처 라벨을 함께 보여준다.
+    const recurringTag =
+      t.sourceKind === 'recurring'
+        ? t.type === 'income'
+          ? '반복수입'
+          : t.type === 'transfer'
+            ? '저축 이체'
+            : '고정지출'
+        : null
+    const sub = [
+      recurringTag ?? cat,
+      ps ? paymentSourceTitle(ps, lang) : null,
+      tEnum('recordedBy', t.recordedBy, lang),
+      t.date.slice(5),
+    ]
       .filter(Boolean)
       .join(' · ')
     // 원본 통화 표시 (USD 등 KRW가 아닐 때만 작게)

@@ -9,6 +9,7 @@ import type {
   Currency,
   HolderLabel,
   PaymentSource,
+  RecurringItem,
   Transaction,
   WalletDb,
 } from './types'
@@ -234,4 +235,92 @@ export function getRecurringSavingsTotal(db: WalletDb): number {
   return db.recurringItems
     .filter((r) => r.direction === 'expense' && r.accountId && savingAccountIds.has(r.accountId))
     .reduce((sum, r) => sum + r.amountKrw, 0)
+}
+
+// ---------- 6. 반복항목 (반영/상태/월말 전망) ----------
+
+export type RecurringKind = 'income' | 'expense' | 'savingTransfer'
+export type RecurringComputedStatus = 'due' | 'done' | 'skip'
+
+// 반복항목 분류: 수입 / 일반지출 / 저축이체(적금·투자 계좌로 가는 지출)
+export function classifyRecurring(item: RecurringItem, accounts: Account[]): RecurringKind {
+  if (item.direction === 'income') return 'income'
+  const acc = item.accountId ? accounts.find((a) => a.id === item.accountId) : undefined
+  if (acc && acc.tier === 'saving') return 'savingTransfer'
+  return 'expense'
+}
+
+// 반복항목 → 실제 거래 타입
+export function recurringTxType(kind: RecurringKind): Transaction['type'] {
+  if (kind === 'income') return 'income'
+  if (kind === 'savingTransfer') return 'transfer'
+  return 'expense'
+}
+
+// 이번 달에 이미 반영된 반복항목인지 (sourceRecurringItemId + 월 기준)
+export function isRecurringAppliedThisMonth(
+  transactions: Transaction[],
+  recurringItemId: string,
+  month: string,
+): boolean {
+  return transactions.some(
+    (t) => t.sourceRecurringItemId === recurringItemId && t.date.startsWith(month),
+  )
+}
+
+// 화면 표시용 상태: 반영완료(done) / 건너뜀(skip) / 예정(due)
+export function getRecurringStatus(
+  item: RecurringItem,
+  transactions: Transaction[],
+  month: string,
+): RecurringComputedStatus {
+  if (isRecurringAppliedThisMonth(transactions, item.id, month)) return 'done'
+  if (item.status === 'skip') return 'skip'
+  return 'due'
+}
+
+// 아직 반영되지 않은(예정) 반복항목들. skip 제외.
+export function getPendingRecurring(db: WalletDb, month: string): RecurringItem[] {
+  return db.recurringItems.filter((r) => getRecurringStatus(r, db.transactions, month) === 'due')
+}
+
+export interface MonthlyOutlook {
+  actualIncome: number // 이번 달 실제 수입
+  actualExpense: number // 이번 달 실제 지출
+  pendingIncome: number // 아직 반영 안 된 예정 수입
+  pendingExpense: number // 아직 반영 안 된 예정 지출(저축이체 제외)
+  pendingSavingTransfer: number // 아직 반영 안 된 예정 저축이체(별도 표시)
+  expectedLeftover: number // 예상 월말 남는 돈
+  maxSavings: number // 최대저축 가능액 (>= 0)
+}
+
+// 이번 달 월말 전망 + 최대저축 가능액
+export function getMonthlyOutlook(db: WalletDb, month: string): MonthlyOutlook {
+  const actualIncome = getMonthlyIncomeTotal(db.transactions, month)
+  const actualExpense = getMonthlyExpenseTotal(db.transactions, month)
+
+  let pendingIncome = 0
+  let pendingExpense = 0
+  let pendingSavingTransfer = 0
+  for (const item of getPendingRecurring(db, month)) {
+    const kind = classifyRecurring(item, db.accounts)
+    if (kind === 'income') pendingIncome += item.amountKrw
+    else if (kind === 'savingTransfer') pendingSavingTransfer += item.amountKrw
+    else pendingExpense += item.amountKrw
+  }
+
+  // 예상 월말 남는 돈 = 실제수입 + 남은예정수입 − 실제지출 − 남은예정지출
+  // (저축이체는 '남기는 돈'이라 별도 표시, 차감하지 않음)
+  const expectedLeftover = actualIncome + pendingIncome - actualExpense - pendingExpense
+  const maxSavings = Math.max(0, expectedLeftover)
+
+  return {
+    actualIncome,
+    actualExpense,
+    pendingIncome,
+    pendingExpense,
+    pendingSavingTransfer,
+    expectedLeftover,
+    maxSavings,
+  }
 }

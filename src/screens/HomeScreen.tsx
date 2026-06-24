@@ -11,6 +11,8 @@ import {
   getLiquidAssets,
   getLockedAssets,
   getMonthlyExpenseTotal,
+  getMonthlyOutlook,
+  getPendingRecurring,
   getRecentExpenses,
 } from '../domain/calculations.ts'
 import {
@@ -48,6 +50,8 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
   const spendableAccounts = db.accounts.filter((a) => a.tier === 'spendable')
   const recent = getRecentExpenses(db.transactions, 3)
   const psById = new Map(db.paymentSources.map((p) => [p.id, p]))
+  const pending = getPendingRecurring(db, month).slice(0, 3)
+  const outlook = getMonthlyOutlook(db, month)
 
   // 히어로 카운트업 (쓸 수 있는 돈, 화면 활성화 시 0 → 목표)
   const [heroDisplay, setHeroDisplay] = useState(liquid)
@@ -108,6 +112,22 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
           <div className="cap">예산 {formatMoney(budgetTotal, cur, fxRate)} 중 {usagePct}% 사용</div>
         </div>
 
+        <div className="gl pod">
+          <div className="label">이번 달 예상으로 남길 수 있는 돈</div>
+          <div className="num" style={{ fontSize: 24, fontWeight: 800, marginTop: 3 }}>{formatMoney(outlook.maxSavings, cur, fxRate)}</div>
+          <div className="between" style={{ marginTop: 12 }}>
+            <div>
+              <div className="label">아직 반영 안 된 수입</div>
+              <div className="num" style={{ fontWeight: 800, color: 'var(--aqua-d)', marginTop: 3 }}>+{formatMoney(outlook.pendingIncome, cur, fxRate)}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div className="label">아직 나갈 예정인 돈</div>
+              <div className="num" style={{ fontWeight: 800, color: '#cf743d', marginTop: 3 }}>−{formatMoney(outlook.pendingExpense, cur, fxRate)}</div>
+            </div>
+          </div>
+          {outlook.pendingSavingTransfer > 0 && <div className="cap">예정 저축 이체 {formatMoney(outlook.pendingSavingTransfer, cur, fxRate)}</div>}
+        </div>
+
         <div>
           <div className="sect">우리 돈이 있는 곳</div>
           <div className="prows">
@@ -138,10 +158,11 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
             <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('schedule')}>일정 보기</span>
           </div>
           <div className="hscroll">
-            {db.recurringItems.slice(0, 3).map((r) => {
+            {pending.length === 0 && <div className="cap">이번 달 예정 항목을 모두 반영했어요</div>}
+            {pending.map((r) => {
               const sign = r.direction === 'income' ? '+' : '−'
               return (
-                <div className="gl due" key={r.id}>
+                <div className="gl due" key={r.id} onClick={() => onGo('schedule')}>
                   <div className="wh">{lang === 'ko' ? `매월 ${r.daysOfMonth.join('·')}일` : `Monthly ${r.daysOfMonth.join(', ')}`}</div>
                   <div className="nm">{tItemLabel(r, lang)}</div>
                   <div className={'m num ' + (r.direction === 'income' ? 'm-in' : 'm-out')}>{sign}{formatMoney(r.amountKrw, cur, fxRate)}</div>

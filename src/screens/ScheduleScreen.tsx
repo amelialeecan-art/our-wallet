@@ -1,16 +1,26 @@
 import { useWallet } from '../store/WalletProvider.tsx'
-import { formatMoney } from '../domain/calculations.ts'
+import { showToast } from '../lib/feedback.ts'
+import { formatMoney, getActiveMonth, getRecurringStatus } from '../domain/calculations.ts'
 import { recurringDaysLabel, recurringStatusLabel, tItemLabel } from '../i18n/labels.ts'
 import type { RecurringItem } from '../domain/types'
 
 export default function ScheduleScreen({ active }: { active: boolean }) {
-  const { db, displayCurrency, fxRate, lang } = useWallet()
+  const { db, displayCurrency, fxRate, lang, applyRecurringItem } = useWallet()
+  const month = getActiveMonth(db)
 
   const incomes = db.recurringItems.filter((r) => r.direction === 'income')
   const expenses = db.recurringItems.filter((r) => r.direction === 'expense')
 
+  function apply(id: string) {
+    const res = applyRecurringItem(id)
+    if (res === 'applied') showToast(lang === 'en' ? 'Applied' : '반영됐어요')
+    else if (res === 'already') showToast(lang === 'en' ? 'Already applied' : '이미 반영됐어요')
+    else showToast(lang === 'en' ? "Couldn't apply" : '반영에 실패했어요')
+  }
+
   const row = (r: RecurringItem) => {
     const sign = r.direction === 'income' ? '+' : '−'
+    const status = getRecurringStatus(r, db.transactions, month)
     return (
       <div className="gl prow" key={r.id}>
         <div className="grow">
@@ -19,7 +29,11 @@ export default function ScheduleScreen({ active }: { active: boolean }) {
         </div>
         <div className="r">
           <div className="m num" style={r.direction === 'income' ? { color: 'var(--aqua-d)' } : undefined}>{sign}{formatMoney(r.amountKrw, displayCurrency, fxRate)}</div>
-          <span className={'st ' + r.status}>{recurringStatusLabel(r.status, lang)}</span>
+          {status === 'due' ? (
+            <button className="edit" style={{ border: 0 }} onClick={() => apply(r.id)}>반영</button>
+          ) : (
+            <span className={'st ' + status}>{recurringStatusLabel(status, lang)}</span>
+          )}
         </div>
       </div>
     )

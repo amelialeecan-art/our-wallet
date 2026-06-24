@@ -14,9 +14,17 @@ import {
 } from '../storage/walletStore'
 import {
   createTransactionFromInput,
+  createTransactionFromRecurring,
   type NewTransactionInput,
 } from '../domain/transactions'
-import { toKrw } from '../domain/calculations'
+import {
+  classifyRecurring,
+  getActiveMonth,
+  isRecurringAppliedThisMonth,
+  recurringTxType,
+  toKrw,
+} from '../domain/calculations'
+import { tItemLabel } from '../i18n/labels'
 import type {
   Currency,
   Lang,
@@ -56,8 +64,12 @@ interface WalletContextValue {
   addTransaction: (input: NewTransactionInput) => boolean
   updateTransaction: (id: string, patch: UpdateTransactionPatch) => boolean
   deleteTransaction: (id: string) => boolean
+  applyRecurringItem: (recurringItemId: string, options?: { date?: string }) => ApplyRecurringResult
   resetData: () => void
 }
+
+// 반복항목 반영 결과
+export type ApplyRecurringResult = 'applied' | 'already' | 'error'
 
 // 수정 가능한 거래 필드 (금액/통화가 바뀌면 amountKrw는 자동 재계산)
 export type UpdateTransactionPatch = Partial<
@@ -176,6 +188,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // 반복항목을 거래로 확정(반영). 자동 아님 — 사용자가 누를 때만.
+    // 같은 항목을 같은 달에 두 번 반영하지 않도록 방어.
+    function applyRecurringItem(
+      recurringItemId: string,
+      options?: { date?: string },
+    ): ApplyRecurringResult {
+      try {
+        if (!device.role) return 'error'
+        const item = db.recurringItems.find((r) => r.id === recurringItemId)
+        if (!item) return 'error'
+
+        const month = getActiveMonth(db)
+        if (isRecurringAppliedThisMonth(db.transactions, item.id, month)) return 'already'
+
+        const day = String(item.daysOfMonth[0] ?? 1).padStart(2, '0')
+        const date = options?.date ?? `${month}-${day}`
+        const kind = classifyRecurring(item, db.accounts)
+
+        const tx = createTransactionFromRecurring(item, {
+          role: device.role,
+          fxRate: db.settings.fxRate,
+          type: recurringTxType(kind),
+          date,
+          label: tItemLabel(item, device.lang),
+        })
+        setDb((prev) => ({ ...prev, transactions: [...prev.transactions, tx] }))
+        return 'applied'
+      } catch {
+        return 'error'
+      }
+    }
+
     return {
       db,
       device,
@@ -192,6 +236,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addTransaction,
       updateTransaction,
       deleteTransaction,
+      applyRecurringItem,
       resetData,
     }
   }, [db, device])
