@@ -8,25 +8,29 @@ import SpendingScreen from './screens/SpendingScreen.tsx'
 import BudgetScreen from './screens/BudgetScreen.tsx'
 import ScheduleScreen from './screens/ScheduleScreen.tsx'
 import SettingsScreen from './screens/SettingsScreen.tsx'
-import type { Currency, ScreenId } from './types'
+import RoleSelectScreen from './screens/RoleSelectScreen.tsx'
+import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
+import type { ScreenId } from './types'
 
-export default function App() {
-  // 현재 화면과 전역 표시 통화. (다음 단계에서 Context/localStorage로 승격 예정)
+function AppInner() {
+  // 표시 통화는 이제 store(기기 상태)에서 온다.
+  const { role, displayCurrency, setDisplayCurrency } = useWallet()
   const [screen, setScreen] = useState<ScreenId>('home')
-  const [cur, setCur] = useState<Currency>('KRW')
 
   function go(id: ScreenId) {
     setScreen(id)
-    // 화면 전환 시 스크롤 최상단으로
     const el = document.getElementById(id)
     if (el) el.scrollTop = 0
   }
 
+  // 역할 미선택 시 역할 선택 화면 (탭바 없이)
+  if (!role) return <RoleSelectScreen />
+
   return (
-    <PhoneFrame>
-      <HomeScreen active={screen === 'home'} cur={cur} setCur={setCur} onGo={go} />
-      <AddScreen active={screen === 'add'} cur={cur} setCur={setCur} />
-      <AssetsScreen active={screen === 'assets'} cur={cur} />
+    <>
+      <HomeScreen active={screen === 'home'} cur={displayCurrency} setCur={setDisplayCurrency} onGo={go} />
+      <AddScreen active={screen === 'add'} cur={displayCurrency} setCur={setDisplayCurrency} />
+      <AssetsScreen active={screen === 'assets'} cur={displayCurrency} />
       <SpendingScreen active={screen === 'spending'} />
       <BudgetScreen active={screen === 'budget'} />
       <ScheduleScreen active={screen === 'schedule'} />
@@ -34,6 +38,16 @@ export default function App() {
 
       <TabBar screen={screen} onGo={go} />
       <div className="toast" id="toast">저장됐어요</div>
-    </PhoneFrame>
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <WalletProvider>
+      <PhoneFrame>
+        <AppInner />
+      </PhoneFrame>
+    </WalletProvider>
   )
 }
