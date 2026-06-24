@@ -16,11 +16,13 @@ import {
   createTransactionFromInput,
   type NewTransactionInput,
 } from '../domain/transactions'
+import { toKrw } from '../domain/calculations'
 import type {
   Currency,
   Lang,
   PaymentSource,
   Role,
+  Transaction,
   WalletDb,
   DeviceState,
 } from '../domain/types'
@@ -52,8 +54,18 @@ interface WalletContextValue {
   setLang: (l: Lang) => void
   setDefaultCurrency: (c: Currency) => void
   addTransaction: (input: NewTransactionInput) => boolean
+  updateTransaction: (id: string, patch: UpdateTransactionPatch) => boolean
+  deleteTransaction: (id: string) => boolean
   resetData: () => void
 }
+
+// 수정 가능한 거래 필드 (금액/통화가 바뀌면 amountKrw는 자동 재계산)
+export type UpdateTransactionPatch = Partial<
+  Pick<
+    Transaction,
+    'amountOriginal' | 'currency' | 'usedFor' | 'categoryId' | 'paymentSourceId' | 'date' | 'memo'
+  >
+>
 
 const WalletContext = createContext<WalletContextValue | null>(null)
 
@@ -115,6 +127,55 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // 거래 수정. 금액/통화가 바뀌면 amountKrw를 고정환율로 다시 계산한다.
+    function updateTransaction(id: string, patch: UpdateTransactionPatch): boolean {
+      try {
+        const existing = db.transactions.find((t) => t.id === id)
+        if (!existing) return false
+
+        const currency: Currency =
+          patch.currency === 'USD' || patch.currency === 'KRW' ? patch.currency : existing.currency
+        const amountOriginal =
+          patch.amountOriginal != null ? Number(patch.amountOriginal) : existing.amountOriginal
+        if (!amountOriginal || amountOriginal <= 0) return false
+
+        const fxRate = db.settings.fxRate
+        const updated: Transaction = {
+          ...existing,
+          ...patch,
+          currency,
+          amountOriginal,
+          amountKrw: toKrw(amountOriginal, currency, fxRate),
+          fxRateUsed: fxRate,
+          categoryId: (patch.categoryId ?? existing.categoryId) || 'other',
+          usedFor: (patch.usedFor ?? existing.usedFor) || 'shared',
+          paymentSourceId:
+            (patch.paymentSourceId ?? existing.paymentSourceId) ||
+            defaultPaymentSourceId ||
+            existing.paymentSourceId,
+          updatedAt: new Date().toISOString(),
+        }
+        setDb((prev) => ({
+          ...prev,
+          transactions: prev.transactions.map((t) => (t.id === id ? updated : t)),
+        }))
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    // 거래 삭제 (id 기준). 없는 id는 무시.
+    function deleteTransaction(id: string): boolean {
+      try {
+        if (!db.transactions.some((t) => t.id === id)) return false
+        setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) }))
+        return true
+      } catch {
+        return false
+      }
+    }
+
     return {
       db,
       device,
@@ -129,6 +190,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setLang,
       setDefaultCurrency,
       addTransaction,
+      updateTransaction,
+      deleteTransaction,
       resetData,
     }
   }, [db, device])

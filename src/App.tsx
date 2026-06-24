@@ -9,13 +9,16 @@ import BudgetScreen from './screens/BudgetScreen.tsx'
 import ScheduleScreen from './screens/ScheduleScreen.tsx'
 import SettingsScreen from './screens/SettingsScreen.tsx'
 import RoleSelectScreen from './screens/RoleSelectScreen.tsx'
+import TransactionsScreen from './screens/TransactionsScreen.tsx'
+import TransactionEditScreen from './screens/TransactionEditScreen.tsx'
 import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
 import type { ScreenId } from './types'
 
 function AppInner() {
-  // 표시 통화는 이제 store(기기 상태)에서 온다.
+  // 표시 통화는 store(기기 상태)에서 온다.
   const { role, displayCurrency, setDisplayCurrency } = useWallet()
   const [screen, setScreen] = useState<ScreenId>('home')
+  const [editingTxId, setEditingTxId] = useState<string | null>(null)
 
   function go(id: ScreenId) {
     setScreen(id)
@@ -23,18 +26,25 @@ function AppInner() {
     if (el) el.scrollTop = 0
   }
 
+  function openEdit(id: string) {
+    setEditingTxId(id)
+    go('txedit')
+  }
+
   // 역할 미선택 시 역할 선택 화면 (탭바 없이)
   if (!role) return <RoleSelectScreen />
 
   return (
     <>
-      <HomeScreen active={screen === 'home'} cur={displayCurrency} setCur={setDisplayCurrency} onGo={go} />
+      <HomeScreen active={screen === 'home'} cur={displayCurrency} setCur={setDisplayCurrency} onGo={go} onEdit={openEdit} />
       <AddScreen active={screen === 'add'} cur={displayCurrency} setCur={setDisplayCurrency} />
       <AssetsScreen active={screen === 'assets'} cur={displayCurrency} />
       <SpendingScreen active={screen === 'spending'} />
       <BudgetScreen active={screen === 'budget'} />
       <ScheduleScreen active={screen === 'schedule'} />
       <SettingsScreen active={screen === 'settings'} />
+      <TransactionsScreen active={screen === 'transactions'} onGo={go} onEdit={openEdit} />
+      <TransactionEditScreen key={editingTxId ?? 'none'} active={screen === 'txedit'} txId={editingTxId} onDone={() => go('transactions')} />
 
       <TabBar screen={screen} onGo={go} />
       <div className="toast" id="toast">저장됐어요</div>

@@ -28,9 +28,10 @@ interface Props {
   cur: Currency
   setCur: (c: Currency) => void
   onGo: (id: ScreenId) => void
+  onEdit: (id: string) => void
 }
 
-export default function HomeScreen({ active, cur, setCur, onGo }: Props) {
+export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props) {
   const ref = useRef<HTMLElement>(null)
   useScreenAnimations(ref, active)
 
@@ -151,13 +152,17 @@ export default function HomeScreen({ active, cur, setCur, onGo }: Props) {
         </div>
 
         <div>
-          <div className="sect">최근 우리 지출</div>
+          <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
+            <div className="sect" style={{ margin: 0, padding: 0 }}>최근 우리 지출</div>
+            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('transactions')}>전체 보기</span>
+          </div>
           <div className="prows">
+            {recent.length === 0 && <div className="cap">아직 기록이 없어요</div>}
             {recent.map((t) => {
               const ps = psById.get(t.paymentSourceId)
               const cls = colorClass(t.usedFor)
               return (
-                <div className="gl prow" key={t.id}>
+                <div className="gl prow" key={t.id} onClick={() => onEdit(t.id)}>
                   <div className="grow">
                     <div className="aname">{t.memo || tEnum('category', t.categoryId, lang)}</div>
                     <div className="atype">{tEnum('category', t.categoryId, lang)}{ps ? ' · ' + paymentSourceTitle(ps, lang) : ''}</div>
