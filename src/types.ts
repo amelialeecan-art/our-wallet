@@ -14,3 +14,8 @@ export type ScreenId =
   | 'settings'
   | 'transactions'
   | 'txedit'
+  | 'accountsSettings'
+  | 'accountEdit'
+  | 'paymentSourcesSettings'
+  | 'paymentSourceEdit'
+  | 'defaultsSettings'

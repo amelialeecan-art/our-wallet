@@ -11,7 +11,7 @@ const MONTH = '2026-06'
 
 export function createSeedDb(): WalletDb {
   return {
-    version: 1,
+    version: 2,
     household: {
       id: 'household_1',
       createdAt: NOW,
@@ -24,22 +24,26 @@ export function createSeedDb(): WalletDb {
     settings: {
       defaultCurrency: 'KRW',
       fxRate: USD_TO_KRW, // 1 USD = 1,500 KRW (고정)
+      personDefaults: {
+        hyeonsu: { paymentSourceId: 'ps_hyeonsu_card', currency: 'KRW', lang: 'ko' },
+        tanner: { paymentSourceId: 'ps_tanner_card', currency: 'USD', lang: 'en' },
+      },
     },
 
     // 보관 위치 — 쓸 수 있는 돈 29,000,000 + 모으는·불리는 돈 19,000,000 = 48,000,000
     accounts: [
-      { id: 'acc_hyeonsu_bank', holder: 'hyeonsu', kind: 'bank', tier: 'spendable', currency: 'KRW', balanceOriginal: 18000000, balanceKrw: 18000000 },
-      { id: 'acc_tanner_bank', holder: 'tanner', kind: 'bank', tier: 'spendable', currency: 'USD', balanceOriginal: 6000, balanceKrw: 9000000 },
-      { id: 'acc_cash', holder: 'shared', kind: 'cash', tier: 'spendable', currency: 'KRW', balanceOriginal: 2000000, balanceKrw: 2000000 },
-      { id: 'acc_hyeonsu_savings', holder: 'hyeonsu', kind: 'savings', tier: 'saving', currency: 'KRW', balanceOriginal: 8000000, balanceKrw: 8000000 },
-      { id: 'acc_tanner_invest', holder: 'tanner', kind: 'investment', tier: 'saving', currency: 'KRW', balanceOriginal: 11000000, balanceKrw: 11000000 },
+      { id: 'acc_hyeonsu_bank', nameKo: '현수 계좌', nameEn: 'Hyeonsu Account', holder: 'hyeonsu', kind: 'deposit', tier: 'spendable', currency: 'KRW', balanceOriginal: 18000000, balanceKrw: 18000000 },
+      { id: 'acc_tanner_bank', nameKo: '태너 계좌', nameEn: 'Tanner Account', holder: 'tanner', kind: 'deposit', tier: 'spendable', currency: 'USD', balanceOriginal: 6000, balanceKrw: 9000000 },
+      { id: 'acc_cash', nameKo: '현금', nameEn: 'Cash', holder: 'shared', kind: 'cash', tier: 'spendable', currency: 'KRW', balanceOriginal: 2000000, balanceKrw: 2000000 },
+      { id: 'acc_hyeonsu_savings', nameKo: '현수 계좌', nameEn: 'Hyeonsu Account', holder: 'hyeonsu', kind: 'installment', tier: 'saving', currency: 'KRW', balanceOriginal: 8000000, balanceKrw: 8000000 },
+      { id: 'acc_tanner_invest', nameKo: '태너 계좌', nameEn: 'Tanner Account', holder: 'tanner', kind: 'investment', tier: 'saving', currency: 'KRW', balanceOriginal: 11000000, balanceKrw: 11000000 },
     ],
 
     // 결제 통로
     paymentSources: [
-      { id: 'ps_hyeonsu_card', kind: 'card', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank' },
-      { id: 'ps_tanner_card', kind: 'card', holder: 'tanner', currency: 'KRW', linkedAccountId: 'acc_tanner_bank' },
-      { id: 'ps_hyeonsu_transfer', kind: 'transfer', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank' },
+      { id: 'ps_hyeonsu_card', nameKo: '현수카드', nameEn: 'Hyeonsu Card', kind: 'card', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank', isActive: true },
+      { id: 'ps_tanner_card', nameKo: 'Tanner Card', nameEn: 'Tanner Card', kind: 'card', holder: 'tanner', currency: 'KRW', linkedAccountId: 'acc_tanner_bank', isActive: true },
+      { id: 'ps_hyeonsu_transfer', nameKo: '현수 계좌 이체', nameEn: 'Hyeonsu transfer', kind: 'account', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank', isActive: true },
     ],
 
     // 카테고리 (영문 id, 화면 라벨은 i18n)

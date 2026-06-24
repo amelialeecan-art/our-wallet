@@ -25,15 +25,30 @@ import {
   toKrw,
 } from '../domain/calculations'
 import { tItemLabel } from '../i18n/labels'
+import {
+  applyAccountPatch,
+  applyPaymentSourcePatch,
+  createAccount,
+  createPaymentSource,
+  type AccountPatch,
+  type NewAccountInput,
+  type NewPaymentSourceInput,
+  type PaymentSourcePatch,
+} from '../domain/accounts'
 import type {
   Currency,
   Lang,
   PaymentSource,
+  PersonDefaults,
   Role,
   Transaction,
   WalletDb,
   DeviceState,
 } from '../domain/types'
+
+// 삭제 결과 (데이터 무결성 안내용)
+export type AccountDeleteResult = 'deleted' | 'linked-payment' | 'used-in-tx' | 'error'
+export type PaymentSourceDeleteResult = 'deleted' | 'used-in-tx' | 'is-default' | 'error'
 
 // 현재 역할 기준 기본 결제통로: 같은 보관자의 카드 → 같은 보관자의 통로 → 첫 통로
 function deriveDefaultPaymentSource(sources: PaymentSource[], role: Role | null): string | null {
@@ -65,6 +80,16 @@ interface WalletContextValue {
   updateTransaction: (id: string, patch: UpdateTransactionPatch) => boolean
   deleteTransaction: (id: string) => boolean
   applyRecurringItem: (recurringItemId: string, options?: { date?: string }) => ApplyRecurringResult
+  // 계좌
+  addAccount: (input: NewAccountInput) => boolean
+  updateAccount: (id: string, patch: AccountPatch) => boolean
+  deleteAccount: (id: string) => AccountDeleteResult
+  // 결제통로
+  addPaymentSource: (input: NewPaymentSourceInput) => boolean
+  updatePaymentSource: (id: string, patch: PaymentSourcePatch) => boolean
+  deletePaymentSource: (id: string) => PaymentSourceDeleteResult
+  // 역할별 기본값
+  updatePersonDefaults: (role: Role, patch: Partial<PersonDefaults>) => void
   resetData: () => void
 }
 
@@ -94,13 +119,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [device])
 
   const value = useMemo<WalletContextValue>(() => {
-    // 역할 선택 시 기기 기본값(표시통화·언어)을 함께 정해준다. 소유권이 아니라 기본값일 뿐.
+    // 역할 선택 시 기기 기본값(표시통화·언어)을 역할별 설정에서 가져온다. 소유권이 아니라 기본값일 뿐.
     function setRole(role: Role) {
+      const d = db.settings.personDefaults?.[role]
       setDevice((prev) => ({
         ...prev,
         role,
-        displayCurrency: role === 'tanner' ? 'USD' : 'KRW',
-        lang: role === 'tanner' ? 'en' : 'ko',
+        displayCurrency: d?.currency ?? (role === 'tanner' ? 'USD' : 'KRW'),
+        lang: d?.lang ?? (role === 'tanner' ? 'en' : 'ko'),
       }))
     }
     function clearRole() {
@@ -119,7 +145,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setDb(resetDb())
     }
 
-    const defaultPaymentSourceId = deriveDefaultPaymentSource(db.paymentSources, device.role)
+    // 기본 결제통로: 역할별 설정값(유효·활성)을 우선, 없으면 보관자 카드로 자동 선택
+    const activeSources = db.paymentSources.filter((p) => p.isActive !== false)
+    const configuredDefault = device.role ? db.settings.personDefaults?.[device.role]?.paymentSourceId : null
+    const defaultPaymentSourceId =
+      configuredDefault && activeSources.some((p) => p.id === configuredDefault)
+        ? configuredDefault
+        : deriveDefaultPaymentSource(activeSources, device.role)
 
     // 지출 거래 추가. 이번 단계에서는 거래만 추가하고 계좌 잔액은 건드리지 않는다.
     function addTransaction(input: NewTransactionInput): boolean {
@@ -220,6 +252,99 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // ----- 계좌 -----
+    function addAccount(input: NewAccountInput): boolean {
+      try {
+        const acc = createAccount(input, db.settings.fxRate)
+        if (!acc) return false
+        setDb((prev) => ({ ...prev, accounts: [...prev.accounts, acc] }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function updateAccount(id: string, patch: AccountPatch): boolean {
+      try {
+        const existing = db.accounts.find((a) => a.id === id)
+        if (!existing) return false
+        const updated = applyAccountPatch(existing, patch, db.settings.fxRate)
+        if (!updated) return false
+        setDb((prev) => ({ ...prev, accounts: prev.accounts.map((a) => (a.id === id ? updated : a)) }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function deleteAccount(id: string): AccountDeleteResult {
+      try {
+        if (!db.accounts.some((a) => a.id === id)) return 'error'
+        // 무결성: 연결된 결제통로/사용 중인 거래가 있으면 삭제 차단
+        if (db.paymentSources.some((p) => p.linkedAccountId === id)) return 'linked-payment'
+        if (db.transactions.some((t) => t.accountId === id)) return 'used-in-tx'
+        setDb((prev) => ({ ...prev, accounts: prev.accounts.filter((a) => a.id !== id) }))
+        return 'deleted'
+      } catch {
+        return 'error'
+      }
+    }
+
+    // ----- 결제통로 -----
+    function addPaymentSource(input: NewPaymentSourceInput): boolean {
+      try {
+        const ps = createPaymentSource(input)
+        if (!ps) return false
+        setDb((prev) => ({ ...prev, paymentSources: [...prev.paymentSources, ps] }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function updatePaymentSource(id: string, patch: PaymentSourcePatch): boolean {
+      try {
+        const existing = db.paymentSources.find((p) => p.id === id)
+        if (!existing) return false
+        const updated = applyPaymentSourcePatch(existing, patch)
+        if (!updated) return false
+        setDb((prev) => ({ ...prev, paymentSources: prev.paymentSources.map((p) => (p.id === id ? updated : p)) }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function deletePaymentSource(id: string): PaymentSourceDeleteResult {
+      try {
+        if (!db.paymentSources.some((p) => p.id === id)) return 'error'
+        // 무결성: 거래에서 사용 중이면 삭제 차단 (과거 내역 보존)
+        if (db.transactions.some((t) => t.paymentSourceId === id)) return 'used-in-tx'
+        // 무결성: 역할 기본 결제통로면 삭제 차단
+        const pd = db.settings.personDefaults
+        if (pd && (pd.hyeonsu.paymentSourceId === id || pd.tanner.paymentSourceId === id)) return 'is-default'
+        setDb((prev) => ({ ...prev, paymentSources: prev.paymentSources.filter((p) => p.id !== id) }))
+        return 'deleted'
+      } catch {
+        return 'error'
+      }
+    }
+
+    // ----- 역할별 기본값 -----
+    function updatePersonDefaults(role: Role, patch: Partial<PersonDefaults>) {
+      setDb((prev) => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          personDefaults: {
+            ...prev.settings.personDefaults,
+            [role]: { ...prev.settings.personDefaults[role], ...patch },
+          },
+        },
+      }))
+      // 현재 기기 역할의 기본값을 바꾸면 보기 설정(표시통화·언어)도 맞춰준다.
+      if (role === device.role) {
+        if (patch.currency) setDisplayCurrency(patch.currency)
+        if (patch.lang) setLang(patch.lang)
+      }
+    }
+
     return {
       db,
       device,
@@ -237,6 +362,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       updateTransaction,
       deleteTransaction,
       applyRecurringItem,
+      addAccount,
+      updateAccount,
+      deleteAccount,
+      addPaymentSource,
+      updatePaymentSource,
+      deletePaymentSource,
+      updatePersonDefaults,
       resetData,
     }
   }, [db, device])

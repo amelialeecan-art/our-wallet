@@ -33,10 +33,17 @@ export type RecordedBy = 'hyeonsu' | 'tanner'
 export type AssetTier = 'spendable' | 'saving'
 
 // 보관 위치 종류
-export type AccountKind = 'bank' | 'cash' | 'savings' | 'investment'
+export type AccountKind =
+  | 'cash'
+  | 'checking'
+  | 'savings'
+  | 'deposit'
+  | 'installment'
+  | 'investment'
+  | 'other'
 
 // 결제 통로 종류
-export type PaymentKind = 'card' | 'transfer' | 'cash'
+export type PaymentKind = 'card' | 'account' | 'cash'
 
 // 누구의 통로/보관인지 라벨 (소유권 아님)
 export type HolderLabel = 'shared' | 'hyeonsu' | 'tanner'
@@ -66,21 +73,27 @@ export interface Household {
 // ----- 보관 위치 (계좌·현금·적금·투자) -----
 export interface Account {
   id: string
+  nameKo: string
+  nameEn: string
   holder: HolderLabel // 보관 위치 라벨 (소유권 아님)
   kind: AccountKind
   tier: AssetTier
   currency: Currency // 이 계좌의 기준 통화
   balanceOriginal: number // 원본 통화 잔액
   balanceKrw: number // 원화 환산 잔액 (항상 함께 보존)
+  note?: string
 }
 
 // ----- 결제 통로 (카드·계좌이체·현금) -----
 export interface PaymentSource {
   id: string
+  nameKo: string
+  nameEn: string
   kind: PaymentKind
   holder: HolderLabel
   currency: Currency
   linkedAccountId?: string
+  isActive?: boolean // 기본 true. false면 AddScreen 목록에서 숨김(과거 거래는 유지)
 }
 
 // ----- 카테고리 -----
@@ -152,10 +165,19 @@ export interface RecurringItem {
   status: RecurringStatus
 }
 
+// ----- 역할별 기본 입력값 (가구 공용에 저장: 어느 기기든 그 역할이면 같은 기본값) -----
+// 역할은 소유권이 아니라 기본 입력값/보기 설정일 뿐이다.
+export interface PersonDefaults {
+  paymentSourceId: string | null
+  currency: Currency
+  lang: Lang
+}
+
 // ----- 앱(가구 공용) 설정 -----
 export interface AppSettings {
   defaultCurrency: Currency // 입력 기본 통화
   fxRate: number // 고정환율 (1 USD = fxRate KRW)
+  personDefaults: Record<Role, PersonDefaults>
 }
 
 // ----- 가구 공용 데이터베이스 (localStorage / 향후 Firebase에 저장될 단위) -----

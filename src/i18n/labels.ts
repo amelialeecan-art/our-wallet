@@ -45,10 +45,22 @@ const ENUMS: Record<string, Group> = {
     adjustment: { ko: '조정', en: 'Adjustment' },
   },
   accountKind: {
-    bank: { ko: '예금', en: 'Deposit' },
-    cash: { ko: '우리 보관', en: 'Our cash' },
-    savings: { ko: '적금', en: 'Savings' },
+    cash: { ko: '현금', en: 'Cash' },
+    checking: { ko: '입출금', en: 'Checking' },
+    savings: { ko: '저축예금', en: 'Savings' },
+    deposit: { ko: '예금', en: 'Deposit' },
+    installment: { ko: '적금', en: 'Installment' },
     investment: { ko: '주식 · 투자', en: 'Stocks · Invest' },
+    other: { ko: '기타', en: 'Other' },
+  },
+  paymentKind: {
+    card: { ko: '카드', en: 'Card' },
+    account: { ko: '계좌 이체', en: 'Transfer' },
+    cash: { ko: '현금', en: 'Cash' },
+  },
+  tier: {
+    spendable: { ko: '쓸 수 있는 돈', en: 'Spendable' },
+    saving: { ko: '모으는·불리는 돈', en: 'Saving' },
   },
   recurringStatus: {
     due: { ko: '예정', en: 'Due' },
@@ -125,29 +137,19 @@ export function recurringStatusLabel(status: RecurringStatus, lang: Lang): strin
   return tEnum('recurringStatus', status, lang)
 }
 
-// ----- 계좌/결제통로 표시 이름 (저장은 키, 표시만 라벨) -----
-function holderName(holder: HolderLabel, lang: Lang): string {
-  return tEnum('usedFor', holder, lang)
-}
-
-// 계좌 제목: 현금은 '현금', 그 외는 '<보관자> 계좌'
+// ----- 계좌/결제통로 표시 이름 (사용자가 지정한 nameKo/nameEn 사용) -----
 export function accountTitle(acc: Account, lang: Lang): string {
-  if (acc.kind === 'cash') return lang === 'ko' ? '현금' : 'Cash'
-  return lang === 'ko' ? `${holderName(acc.holder, lang)} 계좌` : `${holderName(acc.holder, lang)} Account`
+  return (lang === 'ko' ? acc.nameKo : acc.nameEn) || acc.nameKo || acc.nameEn || ''
 }
 
 // 계좌 부제: 종류(+USD 통화 표시)
 export function accountSubtitle(acc: Account, lang: Lang): string {
-  const kind = tEnum('accountKind', acc.kind, lang)
+  const kind = acc.kind === 'cash' ? (lang === 'ko' ? '우리 보관' : 'Our cash') : tEnum('accountKind', acc.kind, lang)
   return acc.currency === 'USD' ? `${kind} · USD` : kind
 }
 
-// 결제통로 제목
 export function paymentSourceTitle(ps: PaymentSource, lang: Lang): string {
-  const who = holderName(ps.holder, lang)
-  if (ps.kind === 'card') return lang === 'ko' ? `${who}카드` : `${who} Card`
-  if (ps.kind === 'transfer') return lang === 'ko' ? `${who} 계좌 이체` : `${who} transfer`
-  return lang === 'ko' ? '현금' : 'Cash'
+  return (lang === 'ko' ? ps.nameKo : ps.nameEn) || ps.nameKo || ps.nameEn || ''
 }
 
 // 반복 항목 날짜 표기: [1,15] → '매월 1·15일'

@@ -8,28 +8,18 @@
 
 import { storage } from './adapter'
 import { createSeedDb } from '../domain/seed'
+import { migrateDb } from '../domain/migrate'
 import type { DeviceState, WalletDb } from '../domain/types'
 
 const PREFIX = 'ourwallet.v1'
 const DB_KEY = `${PREFIX}.db`
 const DEVICE_KEY = `${PREFIX}.device`
 
-// DB가 최소한의 형태를 갖췄는지 확인 (손상 감지)
-function isValidDb(value: unknown): value is WalletDb {
+// 최소 형태만 확인 (정밀 보정은 migrateDb가 담당). 손상 감지용.
+function looksLikeDb(value: unknown): boolean {
   if (!value || typeof value !== 'object') return false
   const db = value as Partial<WalletDb>
-  return (
-    typeof db.version === 'number' &&
-    !!db.household &&
-    !!db.settings &&
-    Array.isArray(db.accounts) &&
-    Array.isArray(db.paymentSources) &&
-    Array.isArray(db.categories) &&
-    Array.isArray(db.transactions) &&
-    Array.isArray(db.budgets) &&
-    Array.isArray(db.recurringItems) &&
-    Array.isArray(db.quickActions)
-  )
+  return Array.isArray(db.accounts) && Array.isArray(db.transactions)
 }
 
 // ----- 가구 공용 DB -----
@@ -38,7 +28,12 @@ export function loadDb(): WalletDb {
   if (raw) {
     try {
       const parsed = JSON.parse(raw)
-      if (isValidDb(parsed)) return parsed
+      if (looksLikeDb(parsed)) {
+        // 이전 버전/누락 필드는 마이그레이션으로 보정 (seed로 덮어쓰지 않음)
+        const migrated = migrateDb(parsed)
+        saveDb(migrated)
+        return migrated
+      }
     } catch {
       // 파싱 실패 → 아래에서 seed로 복구
     }

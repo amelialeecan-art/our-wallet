@@ -151,7 +151,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
             <div className="frow" style={{ display: 'block' }}>
               <span>결제 통로</span>
               <div className="chips" style={{ marginTop: 10 }}>
-                {db.paymentSources.map((p) => (
+                {db.paymentSources.filter((p) => p.isActive !== false).map((p) => (
                   <button key={p.id} className={'chip' + (paymentSourceId === p.id ? ' sel' : '')} onClick={() => setPaymentSourceId(p.id)}>
                     {paymentSourceTitle(p, lang)}
                   </button>

@@ -11,6 +11,11 @@ import SettingsScreen from './screens/SettingsScreen.tsx'
 import RoleSelectScreen from './screens/RoleSelectScreen.tsx'
 import TransactionsScreen from './screens/TransactionsScreen.tsx'
 import TransactionEditScreen from './screens/TransactionEditScreen.tsx'
+import AccountsSettingsScreen from './screens/AccountsSettingsScreen.tsx'
+import AccountEditScreen from './screens/AccountEditScreen.tsx'
+import PaymentSourcesSettingsScreen from './screens/PaymentSourcesSettingsScreen.tsx'
+import PaymentSourceEditScreen from './screens/PaymentSourceEditScreen.tsx'
+import DefaultsSettingsScreen from './screens/DefaultsSettingsScreen.tsx'
 import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
 import type { ScreenId } from './types'
 
@@ -19,6 +24,8 @@ function AppInner() {
   const { role, displayCurrency, setDisplayCurrency } = useWallet()
   const [screen, setScreen] = useState<ScreenId>('home')
   const [editingTxId, setEditingTxId] = useState<string | null>(null)
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
+  const [editingPsId, setEditingPsId] = useState<string | null>(null)
 
   function go(id: ScreenId) {
     setScreen(id)
@@ -29,6 +36,14 @@ function AppInner() {
   function openEdit(id: string) {
     setEditingTxId(id)
     go('txedit')
+  }
+  function openAccountEdit(id: string | null) {
+    setEditingAccountId(id)
+    go('accountEdit')
+  }
+  function openPsEdit(id: string | null) {
+    setEditingPsId(id)
+    go('paymentSourceEdit')
   }
 
   // 역할 미선택 시 역할 선택 화면 (탭바 없이)
@@ -42,9 +57,15 @@ function AppInner() {
       <SpendingScreen active={screen === 'spending'} />
       <BudgetScreen active={screen === 'budget'} />
       <ScheduleScreen active={screen === 'schedule'} />
-      <SettingsScreen active={screen === 'settings'} />
+      <SettingsScreen active={screen === 'settings'} onGo={go} />
       <TransactionsScreen active={screen === 'transactions'} onGo={go} onEdit={openEdit} />
-      <TransactionEditScreen key={editingTxId ?? 'none'} active={screen === 'txedit'} txId={editingTxId} onDone={() => go('transactions')} />
+      <TransactionEditScreen key={'tx-' + (editingTxId ?? 'none')} active={screen === 'txedit'} txId={editingTxId} onDone={() => go('transactions')} />
+
+      <AccountsSettingsScreen active={screen === 'accountsSettings'} onGo={go} onEdit={openAccountEdit} />
+      <AccountEditScreen key={'acc-' + (editingAccountId ?? 'new')} active={screen === 'accountEdit'} accountId={editingAccountId} onDone={() => go('accountsSettings')} />
+      <PaymentSourcesSettingsScreen active={screen === 'paymentSourcesSettings'} onGo={go} onEdit={openPsEdit} />
+      <PaymentSourceEditScreen key={'ps-' + (editingPsId ?? 'new')} active={screen === 'paymentSourceEdit'} paymentSourceId={editingPsId} onDone={() => go('paymentSourcesSettings')} />
+      <DefaultsSettingsScreen active={screen === 'defaultsSettings'} onGo={go} />
 
       <TabBar screen={screen} onGo={go} />
       <div className="toast" id="toast">저장됐어요</div>
