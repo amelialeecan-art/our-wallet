@@ -1,26 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import CurrencyToggle from '../components/CurrencyToggle.tsx'
-import { triggerSaved } from '../lib/feedback.ts'
+import { showToast, triggerSaved } from '../lib/feedback.ts'
+import { useWallet } from '../store/WalletProvider.tsx'
+import { formatMoney } from '../domain/calculations.ts'
+import { colorClass, paymentSourceTitle, tEnum, tItemLabel } from '../i18n/labels.ts'
 import type { Currency } from '../types'
-
-type Who = 'us' | 'hy' | 'ta'
-
-interface QuickItem {
-  name: string
-  amt: number
-  cat: string
-  who?: Who
-}
-
-const QUICK: QuickItem[] = [
-  { name: '점심', amt: 12000, cat: '식비' },
-  { name: '카페', amt: 6000, cat: '카페' },
-  { name: '지하철', amt: 1500, cat: '교통' },
-  { name: '쿠팡', amt: 25000, cat: '쇼핑' },
-  { name: '태너 간식', amt: 10000, cat: '식비', who: 'ta' },
-  { name: '데이트 식비', amt: 50000, cat: '데이트' },
-]
-const CATS = ['식비', '카페', '교통', '데이트', '쇼핑', '집/생활', '기타']
+import type { UsedFor } from '../domain/types'
 
 interface Props {
   active: boolean
@@ -28,11 +13,22 @@ interface Props {
   setCur: (c: Currency) => void
 }
 
+const USED_FOR: UsedFor[] = ['shared', 'hyeonsu', 'tanner']
+
 export default function AddScreen({ active, cur, setCur }: Props) {
+  const { db, lang, fxRate, defaultPaymentSourceId, addTransaction } = useWallet()
+
   const [raw, setRaw] = useState('')
   const [keypadOpen, setKeypadOpen] = useState(false)
-  const [who, setWho] = useState<Who>('us')
-  const [cat, setCat] = useState<string | null>(null)
+  const [usedFor, setUsedFor] = useState<UsedFor>('shared')
+  const [catId, setCatId] = useState<string | null>(null)
+  const [paymentSourceId, setPaymentSourceId] = useState<string | null>(defaultPaymentSourceId)
+  const [memo, setMemo] = useState('')
+
+  // 결제통로 기본값이 정해지면(역할 기준) 채워준다.
+  useEffect(() => {
+    if (!paymentSourceId && defaultPaymentSourceId) setPaymentSourceId(defaultPaymentSourceId)
+  }, [defaultPaymentSourceId, paymentSourceId])
 
   const n = raw === '' ? 0 : parseInt(raw, 10)
   const amtCur = cur === 'KRW' ? '₩' : '$'
@@ -50,16 +46,45 @@ export default function AddScreen({ active, cur, setCur }: Props) {
     })
   }
 
-  function pickQuick(q: QuickItem) {
-    setRaw(String(q.amt))
-    setCat(q.cat)
-    if (q.who) setWho(q.who)
+  // 빠른 버튼: 금액·통화·카테고리·사용대상·결제통로·메모를 한 번에 채운다.
+  function pickQuick(q: (typeof db.quickActions)[number]) {
+    setRaw(String(q.amountOriginal))
+    if (q.currency !== cur) setCur(q.currency)
+    setCatId(q.categoryId)
+    if (q.usedFor) setUsedFor(q.usedFor)
+    if (q.paymentSourceId) setPaymentSourceId(q.paymentSourceId)
+    setMemo(tItemLabel(q, lang))
+    setKeypadOpen(false)
+  }
+
+  function resetInputs() {
+    setRaw('')
+    setMemo('')
+    setCatId(null)
+    setUsedFor('shared')
+    setPaymentSourceId(defaultPaymentSourceId)
     setKeypadOpen(false)
   }
 
   function save() {
-    triggerSaved()
-    setRaw('')
+    if (n <= 0) {
+      showToast(lang === 'en' ? 'Enter an amount' : '금액을 입력해주세요')
+      return
+    }
+    const ok = addTransaction({
+      amountOriginal: n,
+      currency: cur,
+      categoryId: catId ?? 'other',
+      usedFor,
+      paymentSourceId: paymentSourceId ?? undefined,
+      memo,
+    })
+    if (!ok) {
+      showToast(lang === 'en' ? "Couldn't save" : '저장에 실패했어요')
+      return
+    }
+    triggerSaved(lang === 'en' ? 'Saved' : '저장됐어요')
+    resetInputs()
   }
 
   return (
@@ -89,19 +114,21 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         <div>
           <div className="sect">사용대상</div>
           <div className="seg3" id="who">
-            <button className={who === 'us' ? 'sel us' : ''} onClick={() => setWho('us')}>우리</button>
-            <button className={who === 'hy' ? 'sel hy' : ''} onClick={() => setWho('hy')}>현수</button>
-            <button className={who === 'ta' ? 'sel ta' : ''} onClick={() => setWho('ta')}>태너</button>
+            {USED_FOR.map((v) => (
+              <button key={v} className={usedFor === v ? 'sel ' + colorClass(v) : ''} onClick={() => setUsedFor(v)}>
+                {tEnum('usedFor', v, lang)}
+              </button>
+            ))}
           </div>
         </div>
 
         <div>
           <div className="sect">자주 쓰는 항목</div>
           <div className="quick">
-            {QUICK.map((q) => (
-              <button key={q.name} className="gl qbtn" onClick={() => pickQuick(q)}>
-                <div className="qn">{q.name}</div>
-                <div className="qa num">₩{q.amt.toLocaleString('ko-KR')}</div>
+            {db.quickActions.map((q) => (
+              <button key={q.id} className="gl qbtn" onClick={() => pickQuick(q)}>
+                <div className="qn">{tItemLabel(q, lang)}</div>
+                <div className="qa num">{formatMoney(q.amountKrw, q.currency, fxRate)}</div>
               </button>
             ))}
           </div>
@@ -110,8 +137,10 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         <div>
           <div className="sect">카테고리</div>
           <div className="chips">
-            {CATS.map((c) => (
-              <button key={c} className={'chip' + (cat === c ? ' sel' : '')} onClick={() => setCat(c)}>{c}</button>
+            {db.categories.map((c) => (
+              <button key={c.id} className={'chip' + (catId === c.id ? ' sel' : '')} onClick={() => setCatId(c.id)}>
+                {tEnum('category', c.id, lang)}
+              </button>
             ))}
           </div>
         </div>
@@ -119,13 +148,24 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         <details className="gl details">
           <summary><span>자세히 입력하기</span><span className="muted">＋</span></summary>
           <div className="body">
-            <div className="frow"><span>결제 통로</span><span className="fv">현수카드</span></div>
+            <div className="frow" style={{ display: 'block' }}>
+              <span>결제 통로</span>
+              <div className="chips" style={{ marginTop: 10 }}>
+                {db.paymentSources.map((p) => (
+                  <button key={p.id} className={'chip' + (paymentSourceId === p.id ? ' sel' : '')} onClick={() => setPaymentSourceId(p.id)}>
+                    {paymentSourceTitle(p, lang)}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="frow"><span>날짜</span><span className="fv">오늘</span></div>
-            <div className="frow"><span>메모</span><span className="fv muted">없음</span></div>
+            <div className="frow"><span>메모</span><span className={'fv' + (memo ? '' : ' muted')}>{memo || '없음'}</span></div>
           </div>
         </details>
 
-        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}><span>저장</span></button>
+        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}>
+          <span>저장</span>
+        </button>
       </div>
     </section>
   )
