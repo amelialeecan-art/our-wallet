@@ -2,7 +2,14 @@
 // 저장은 영문 키, 표시는 여기서만 한글/영어로 변환한다.
 // (전체 UI 번역은 2단계에서 확장. 1단계는 enum 라벨 + 새로 추가된 화면 문구만.)
 
-import type { Lang } from '../domain/types'
+import type {
+  Account,
+  HolderLabel,
+  Lang,
+  PaymentSource,
+  RecurringStatus,
+  UsedFor,
+} from '../domain/types'
 
 type Pair = { ko: string; en: string }
 type Group = Record<string, Pair>
@@ -42,6 +49,11 @@ const ENUMS: Record<string, Group> = {
     cash: { ko: '우리 보관', en: 'Our cash' },
     savings: { ko: '적금', en: 'Savings' },
     investment: { ko: '주식 · 투자', en: 'Stocks · Invest' },
+  },
+  recurringStatus: {
+    due: { ko: '예정', en: 'Due' },
+    done: { ko: '완료', en: 'Done' },
+    skip: { ko: '건너뜀', en: 'Skipped' },
   },
   currency: {
     KRW: { ko: '원화 KRW', en: 'KRW' },
@@ -99,4 +111,47 @@ export function tItemLabel(item: { labelKey?: string; label?: string }, lang: La
   if (item.label) return item.label
   if (item.labelKey) return tKey(item.labelKey, lang)
   return ''
+}
+
+// ----- 색상 클래스 (디자인의 us/hy/ta 점·바 색을 그대로 사용) -----
+// shared → us, hyeonsu → hy, tanner → ta
+export function colorClass(key: UsedFor | HolderLabel): 'us' | 'hy' | 'ta' {
+  if (key === 'hyeonsu') return 'hy'
+  if (key === 'tanner') return 'ta'
+  return 'us'
+}
+
+export function recurringStatusLabel(status: RecurringStatus, lang: Lang): string {
+  return tEnum('recurringStatus', status, lang)
+}
+
+// ----- 계좌/결제통로 표시 이름 (저장은 키, 표시만 라벨) -----
+function holderName(holder: HolderLabel, lang: Lang): string {
+  return tEnum('usedFor', holder, lang)
+}
+
+// 계좌 제목: 현금은 '현금', 그 외는 '<보관자> 계좌'
+export function accountTitle(acc: Account, lang: Lang): string {
+  if (acc.kind === 'cash') return lang === 'ko' ? '현금' : 'Cash'
+  return lang === 'ko' ? `${holderName(acc.holder, lang)} 계좌` : `${holderName(acc.holder, lang)} Account`
+}
+
+// 계좌 부제: 종류(+USD 통화 표시)
+export function accountSubtitle(acc: Account, lang: Lang): string {
+  const kind = tEnum('accountKind', acc.kind, lang)
+  return acc.currency === 'USD' ? `${kind} · USD` : kind
+}
+
+// 결제통로 제목
+export function paymentSourceTitle(ps: PaymentSource, lang: Lang): string {
+  const who = holderName(ps.holder, lang)
+  if (ps.kind === 'card') return lang === 'ko' ? `${who}카드` : `${who} Card`
+  if (ps.kind === 'transfer') return lang === 'ko' ? `${who} 계좌 이체` : `${who} transfer`
+  return lang === 'ko' ? '현금' : 'Cash'
+}
+
+// 반복 항목 날짜 표기: [1,15] → '매월 1·15일'
+export function recurringDaysLabel(days: number[], lang: Lang): string {
+  if (lang === 'ko') return `매월 ${days.join('·')}일`
+  return `Monthly: ${days.map((d) => 'day ' + d).join(', ')}`
 }

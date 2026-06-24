@@ -1,9 +1,29 @@
 import { useRef } from 'react'
 import { useScreenAnimations } from '../lib/useScreenAnimations.ts'
+import { useWallet } from '../store/WalletProvider.tsx'
+import {
+  formatMoney,
+  getActiveMonth,
+  getBudgetTotal,
+  getBudgetUsageRate,
+  getBudgetUsedByCategory,
+  getMonthlyExpenseTotal,
+} from '../domain/calculations.ts'
+import { tEnum } from '../i18n/labels.ts'
 
 export default function BudgetScreen({ active }: { active: boolean }) {
   const ref = useRef<HTMLElement>(null)
   useScreenAnimations(ref, active)
+
+  const { db, displayCurrency, fxRate, lang } = useWallet()
+  const month = getActiveMonth(db)
+
+  const total = getBudgetTotal(db.budgets, month)
+  const used = getMonthlyExpenseTotal(db.transactions, month)
+  const usagePct = Math.round(getBudgetUsageRate(db.budgets, db.transactions, month) * 100)
+  const byCat = getBudgetUsedByCategory(db.transactions, db.budgets, month)
+    .slice()
+    .sort((a, b) => b.rate - a.rate)
 
   return (
     <section ref={ref} className={'screen' + (active ? ' active' : '')} id="budget">
@@ -12,18 +32,26 @@ export default function BudgetScreen({ active }: { active: boolean }) {
 
         <div className="gl hero ctr">
           <div className="label">사용률</div>
-          <div className="pct num">61%</div>
-          <div className="cap">₩1,820,000 / ₩3,000,000</div>
+          <div className="pct num">{usagePct}%</div>
+          <div className="cap">{formatMoney(used, displayCurrency, fxRate)} / {formatMoney(total, displayCurrency, fxRate)}</div>
         </div>
 
         <div className="gl pod">
           <div className="sect" style={{ padding: 0, marginBottom: 6 }}>카테고리별 사용률</div>
-          <div className="fillrow"><div className="fillhead"><span>데이트 <span className="tagover">초과</span></span><span className="pct">105%</span></div><div className="track"><div className="fill over" data-w="100"></div></div></div>
-          <div className="fillrow"><div className="fillhead"><span>식비</span><span className="pct">97%</span></div><div className="track"><div className="fill" data-w="97"></div></div></div>
-          <div className="fillrow"><div className="fillhead"><span>쇼핑</span><span className="pct">83%</span></div><div className="track"><div className="fill" data-w="83"></div></div></div>
-          <div className="fillrow"><div className="fillhead"><span>카페</span><span className="pct">73%</span></div><div className="track"><div className="fill" data-w="73"></div></div></div>
-          <div className="fillrow"><div className="fillhead"><span>교통</span><span className="pct">58%</span></div><div className="track"><div className="fill" data-w="58"></div></div></div>
-          <div className="fillrow"><div className="fillhead"><span>집/생활</span><span className="pct">32%</span></div><div className="track"><div className="fill" data-w="32"></div></div></div>
+          {byCat.length === 0 && <div className="cap">설정된 카테고리 예산이 없어요</div>}
+          {byCat.map((c) => {
+            const pct = Math.round(c.rate * 100)
+            const over = pct > 100
+            return (
+              <div className="fillrow" key={c.categoryId}>
+                <div className="fillhead">
+                  <span>{tEnum('category', c.categoryId, lang)} {over && <span className="tagover">초과</span>}</span>
+                  <span className="pct">{pct}%</span>
+                </div>
+                <div className="track"><div className={'fill' + (over ? ' over' : '')} data-w={Math.min(100, pct)}></div></div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>

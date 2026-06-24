@@ -1,4 +1,30 @@
+import { useWallet } from '../store/WalletProvider.tsx'
+import { formatMoney } from '../domain/calculations.ts'
+import { recurringDaysLabel, recurringStatusLabel, tItemLabel } from '../i18n/labels.ts'
+import type { RecurringItem } from '../domain/types'
+
 export default function ScheduleScreen({ active }: { active: boolean }) {
+  const { db, displayCurrency, fxRate, lang } = useWallet()
+
+  const incomes = db.recurringItems.filter((r) => r.direction === 'income')
+  const expenses = db.recurringItems.filter((r) => r.direction === 'expense')
+
+  const row = (r: RecurringItem) => {
+    const sign = r.direction === 'income' ? '+' : '−'
+    return (
+      <div className="gl prow" key={r.id}>
+        <div className="grow">
+          <div className="aname">{tItemLabel(r, lang)}</div>
+          <div className="atype">{recurringDaysLabel(r.daysOfMonth, lang)}</div>
+        </div>
+        <div className="r">
+          <div className="m num" style={r.direction === 'income' ? { color: 'var(--aqua-d)' } : undefined}>{sign}{formatMoney(r.amountKrw, displayCurrency, fxRate)}</div>
+          <span className={'st ' + r.status}>{recurringStatusLabel(r.status, lang)}</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <section className={'screen' + (active ? ' active' : '')} id="schedule">
       <div className="stack">
@@ -6,21 +32,12 @@ export default function ScheduleScreen({ active }: { active: boolean }) {
 
         <div>
           <div className="sect">들어오는 우리 수입</div>
-          <div className="prows">
-            <div className="gl prow"><div className="grow"><div className="aname">Tanner Pay</div><div className="atype">매월 1·15일</div></div><div className="r"><div className="m num" style={{ color: 'var(--aqua-d)' }}>+₩2,700,000</div><span className="st due">예정</span></div></div>
-            <div className="gl prow"><div className="grow"><div className="aname">현수 월급</div><div className="atype">매월 25일</div></div><div className="r"><div className="m num" style={{ color: 'var(--aqua-d)' }}>+₩3,200,000</div><span className="st due">예정</span></div></div>
-          </div>
+          <div className="prows">{incomes.length ? incomes.map(row) : <div className="cap">등록된 수입이 없어요</div>}</div>
         </div>
 
         <div>
           <div className="sect">나가는 돈</div>
-          <div className="prows">
-            <div className="gl prow"><div className="grow"><div className="aname">월세</div><div className="atype">매월 1일</div></div><div className="r"><div className="m num">−₩900,000</div><span className="st due">예정</span></div></div>
-            <div className="gl prow"><div className="grow"><div className="aname">관리비</div><div className="atype">매월 5일</div></div><div className="r"><div className="m num">−₩180,000</div><span className="st due">예정</span></div></div>
-            <div className="gl prow"><div className="grow"><div className="aname">넷플릭스</div><div className="atype">매월 15일</div></div><div className="r"><div className="m num">−₩17,000</div><span className="edit">금액 수정</span></div></div>
-            <div className="gl prow"><div className="grow"><div className="aname">카드값</div><div className="atype">매월 12일</div></div><div className="r"><div className="m num">−₩1,400,000</div><span className="st done">완료</span></div></div>
-            <div className="gl prow"><div className="grow"><div className="aname">적금 이체</div><div className="atype">매월 25일</div></div><div className="r"><div className="m num">−₩500,000</div><span className="st skip">건너뜀</span></div></div>
-          </div>
+          <div className="prows">{expenses.length ? expenses.map(row) : <div className="cap">등록된 고정지출이 없어요</div>}</div>
         </div>
       </div>
     </section>

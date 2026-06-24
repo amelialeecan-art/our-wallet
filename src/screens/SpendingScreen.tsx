@@ -1,4 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
+import { useWallet } from '../store/WalletProvider.tsx'
+import {
+  getActiveMonth,
+  getSpendingByAccount,
+  getSpendingByCategory,
+  getSpendingByCurrency,
+  getSpendingByPaymentSource,
+  getSpendingByUsedFor,
+} from '../domain/calculations.ts'
+import {
+  accountTitle,
+  colorClass,
+  paymentSourceTitle,
+  tEnum,
+} from '../i18n/labels.ts'
+import type { Breakdown } from '../domain/calculations.ts'
 
 type TabKey = 'who' | 'cat' | 'pay' | 'acc' | 'cur'
 
@@ -13,6 +29,28 @@ const TABS: { key: TabKey; label: string }[] = [
 export default function SpendingScreen({ active }: { active: boolean }) {
   const ref = useRef<HTMLElement>(null)
   const [tab, setTab] = useState<TabKey>('who')
+
+  const { db, lang } = useWallet()
+  const month = getActiveMonth(db)
+
+  const byUsedFor = getSpendingByUsedFor(db.transactions, month)
+  const byCategory = getSpendingByCategory(db.transactions, month)
+  const byPay = getSpendingByPaymentSource(db.transactions, db.paymentSources, month)
+  const byAccount = getSpendingByAccount(db.transactions, db.paymentSources, db.accounts, month)
+  const byCurrency = getSpendingByCurrency(db.transactions, month)
+
+  const psById = new Map(db.paymentSources.map((p) => [p.id, p]))
+  const accById = new Map(db.accounts.map((a) => [a.id, a]))
+
+  // 사용대상 비율 (없으면 0 → NaN 방어)
+  const pctOf = (key: string) => byUsedFor.find((b) => b.key === key)?.pct ?? 0
+  const sharedPct = pctOf('shared')
+  const hyeonsuPct = pctOf('hyeonsu')
+  const tannerPct = pctOf('tanner')
+  // 액체 기둥은 누적 높이로 쌓는다 (디자인과 동일)
+  const hUs = Math.round(sharedPct)
+  const hHy = Math.round(sharedPct + hyeonsuPct)
+  const hTa = Math.round(sharedPct + hyeonsuPct + tannerPct)
 
   // 화면 활성화 또는 탭 전환 시 켜진 패널의 막대/액체를 다시 채운다.
   useEffect(() => {
@@ -30,7 +68,7 @@ export default function SpendingScreen({ active }: { active: boolean }) {
       })
     }, 60)
     return () => clearTimeout(t)
-  }, [active, tab])
+  }, [active, tab, db])
 
   return (
     <section ref={ref} className={'screen' + (active ? ' active' : '')} id="spending">
@@ -46,11 +84,15 @@ export default function SpendingScreen({ active }: { active: boolean }) {
           <div className="gl pod">
             <div className="sect" style={{ padding: 0, marginBottom: 14 }}>우리 지출의 사용대상</div>
             <div className="liquid-wrap">
-              <div className="liquid"><div className="lq ta" data-h="100"></div><div className="lq hy" data-h="80"></div><div className="lq us" data-h="52"></div></div>
+              <div className="liquid">
+                <div className="lq ta" data-h={hTa}></div>
+                <div className="lq hy" data-h={hHy}></div>
+                <div className="lq us" data-h={hUs}></div>
+              </div>
               <div className="legend">
-                <div className="lg"><span className="k" style={{ background: 'var(--us)' }}></span>공동<span className="p num">52%</span></div>
-                <div className="lg"><span className="k" style={{ background: 'var(--hyun)' }}></span>현수<span className="p num">28%</span></div>
-                <div className="lg"><span className="k" style={{ background: 'var(--tan)' }}></span>태너<span className="p num">20%</span></div>
+                <div className="lg"><span className="k" style={{ background: 'var(--us)' }}></span>{tEnum('usedFor', 'shared', lang)}<span className="p num">{Math.round(sharedPct)}%</span></div>
+                <div className="lg"><span className="k" style={{ background: 'var(--hyun)' }}></span>{tEnum('usedFor', 'hyeonsu', lang)}<span className="p num">{Math.round(hyeonsuPct)}%</span></div>
+                <div className="lg"><span className="k" style={{ background: 'var(--tan)' }}></span>{tEnum('usedFor', 'tanner', lang)}<span className="p num">{Math.round(tannerPct)}%</span></div>
               </div>
             </div>
           </div>
@@ -59,38 +101,43 @@ export default function SpendingScreen({ active }: { active: boolean }) {
         <div className={'panel' + (tab === 'cat' ? ' on' : '')}>
           <div className="gl pod">
             <div className="sect" style={{ padding: 0, marginBottom: 6 }}>카테고리별</div>
-            <FillRow label="식비" pct={32} />
-            <FillRow label="데이트" pct={22} />
-            <FillRow label="쇼핑" pct={18} />
-            <FillRow label="카페" pct={10} />
-            <FillRow label="집/생활" pct={9} />
-            <FillRow label="교통" pct={6} />
-            <FillRow label="기타" pct={3} />
+            <BreakdownList
+              rows={byCategory}
+              labelOf={(b) => tEnum('category', b.key, lang)}
+            />
           </div>
         </div>
 
         <div className={'panel' + (tab === 'pay' ? ' on' : '')}>
           <div className="gl pod">
             <div className="sect" style={{ padding: 0, marginBottom: 6 }}>우리 지출이 나간 통로</div>
-            <FillRow label="현수카드" pct={58} color="hy" />
-            <FillRow label="Tanner Card" pct={34} color="ta" />
-            <FillRow label="현수 계좌 이체" pct={8} />
+            <BreakdownList
+              rows={byPay}
+              labelOf={(b) => { const ps = psById.get(b.key); return ps ? paymentSourceTitle(ps, lang) : b.key }}
+              colorOf={(b) => { const ps = psById.get(b.key); return ps ? colorClass(ps.holder) : undefined }}
+            />
           </div>
         </div>
 
         <div className={'panel' + (tab === 'acc' ? ' on' : '')}>
           <div className="gl pod">
             <div className="sect" style={{ padding: 0, marginBottom: 6 }}>계좌별</div>
-            <FillRow label="현수 계좌" pct={62} color="hy" />
-            <FillRow label="태너 계좌" pct={38} color="ta" />
+            <BreakdownList
+              rows={byAccount}
+              labelOf={(b) => { const a = accById.get(b.key); return a ? accountTitle(a, lang) : b.key }}
+              colorOf={(b) => { const a = accById.get(b.key); return a ? colorClass(a.holder) : undefined }}
+            />
           </div>
         </div>
 
         <div className={'panel' + (tab === 'cur' ? ' on' : '')}>
           <div className="gl pod">
             <div className="sect" style={{ padding: 0, marginBottom: 6 }}>통화별</div>
-            <FillRow label="원화 KRW" pct={81} />
-            <FillRow label="달러 USD" pct={19} color="ta" />
+            <BreakdownList
+              rows={byCurrency}
+              labelOf={(b) => tEnum('currency', b.key, lang)}
+              colorOf={(b) => (b.key === 'USD' ? 'ta' : undefined)}
+            />
           </div>
         </div>
       </div>
@@ -98,11 +145,28 @@ export default function SpendingScreen({ active }: { active: boolean }) {
   )
 }
 
-function FillRow({ label, pct, color }: { label: string; pct: number; color?: string }) {
+function BreakdownList({
+  rows,
+  labelOf,
+  colorOf,
+}: {
+  rows: Breakdown[]
+  labelOf: (b: Breakdown) => string
+  colorOf?: (b: Breakdown) => 'us' | 'hy' | 'ta' | undefined
+}) {
+  if (rows.length === 0) return <div className="cap">아직 지출 기록이 없어요</div>
   return (
-    <div className="fillrow">
-      <div className="fillhead"><span>{label}</span><span className="pct">{pct}%</span></div>
-      <div className="track"><div className={'fill' + (color ? ' ' + color : '')} data-w={pct}></div></div>
-    </div>
+    <>
+      {rows.map((b) => {
+        const color = colorOf?.(b)
+        const pct = Math.round(b.pct)
+        return (
+          <div className="fillrow" key={b.key}>
+            <div className="fillhead"><span>{labelOf(b)}</span><span className="pct">{pct}%</span></div>
+            <div className="track"><div className={'fill' + (color ? ' ' + color : '')} data-w={Math.min(100, pct)}></div></div>
+          </div>
+        )
+      })}
+    </>
   )
 }
