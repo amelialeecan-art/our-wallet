@@ -25,6 +25,8 @@ import {
   toKrw,
 } from '../domain/calculations'
 import { recurringTitle } from '../i18n/labels'
+import { migrateDb } from '../domain/migrate'
+import { buildBackup, transactionsToCsv, validateBackup } from '../domain/backup'
 import {
   applyRecurringPatch,
   createRecurringItem,
@@ -122,6 +124,11 @@ interface WalletContextValue {
   addRecurringItem: (input: NewRecurringInput) => boolean
   updateRecurringItem: (id: string, patch: RecurringPatch) => boolean
   deleteRecurringItem: (id: string) => RecurringDeleteResult
+  // 데이터 백업/복원/초기화
+  exportBackupString: (includeDevice?: boolean) => string
+  exportTransactionsCsv: () => string
+  replaceDatabaseFromBackup: (parsed: unknown) => boolean
+  resetDatabaseToSeed: () => void
   resetData: () => void
 }
 
@@ -523,6 +530,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // ----- 데이터 백업/복원/초기화 -----
+    function exportBackupString(includeDevice = false): string {
+      return JSON.stringify(buildBackup(db, includeDevice ? device : undefined), null, 2)
+    }
+    function exportTransactionsCsv(): string {
+      return transactionsToCsv(db, device.lang)
+    }
+    // 백업 파일로 현재 DB 교체. 실패하면 기존 데이터 유지(setDb 호출 안 함).
+    function replaceDatabaseFromBackup(parsed: unknown): boolean {
+      try {
+        const result = validateBackup(parsed)
+        if (!result.ok) return false
+        // 구버전 백업도 migrate로 맞춰 복원
+        const migrated = migrateDb(result.db)
+        setDb(migrated)
+        return true
+      } catch {
+        return false
+      }
+    }
+    // seed로 초기화 (기기 역할/표시설정은 유지)
+    function resetDatabaseToSeed(): void {
+      setDb(resetDb())
+    }
+
     return {
       db,
       device,
@@ -558,6 +590,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addRecurringItem,
       updateRecurringItem,
       deleteRecurringItem,
+      exportBackupString,
+      exportTransactionsCsv,
+      replaceDatabaseFromBackup,
+      resetDatabaseToSeed,
       resetData,
     }
   }, [db, device])

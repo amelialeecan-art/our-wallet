@@ -47,6 +47,12 @@ export default function SettingsScreen({ active, onGo }: { active: boolean; onGo
             <div className="gl prow" onClick={() => onGo('recurringSettings')}><div className="st-t">반복 수입·고정지출 관리</div><span className="chev">›</span></div>
           </div>
         </div>
+        <div>
+          <div className="sect">데이터</div>
+          <div className="prows">
+            <div className="gl prow" onClick={() => onGo('dataSettings')}><div className="st-t">백업 · 복원 · 초기화</div><span className="chev">›</span></div>
+          </div>
+        </div>
       </div>
     </section>
   )

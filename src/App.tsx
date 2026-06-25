@@ -22,6 +22,7 @@ import QuickActionsSettingsScreen from './screens/QuickActionsSettingsScreen.tsx
 import QuickActionEditScreen from './screens/QuickActionEditScreen.tsx'
 import RecurringSettingsScreen from './screens/RecurringSettingsScreen.tsx'
 import RecurringEditScreen from './screens/RecurringEditScreen.tsx'
+import DataSettingsScreen from './screens/DataSettingsScreen.tsx'
 import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
 import type { ScreenId } from './types'
 
@@ -93,6 +94,7 @@ function AppInner() {
       <QuickActionEditScreen key={'qa-' + (editingQaId ?? 'new')} active={screen === 'quickActionEdit'} quickActionId={editingQaId} onDone={() => go('quickActionsSettings')} />
       <RecurringSettingsScreen active={screen === 'recurringSettings'} onGo={go} onEdit={openRecEdit} />
       <RecurringEditScreen key={'rec-' + (editingRecId ?? 'new')} active={screen === 'recurringEdit'} recurringId={editingRecId} onDone={() => go('recurringSettings')} />
+      <DataSettingsScreen active={screen === 'dataSettings'} onGo={go} />
 
       <TabBar screen={screen} onGo={go} />
       <div className="toast" id="toast">저장됐어요</div>
