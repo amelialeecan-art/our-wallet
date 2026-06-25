@@ -19,3 +19,7 @@ export type ScreenId =
   | 'paymentSourcesSettings'
   | 'paymentSourceEdit'
   | 'defaultsSettings'
+  | 'categoriesSettings'
+  | 'categoryEdit'
+  | 'quickActionsSettings'
+  | 'quickActionEdit'

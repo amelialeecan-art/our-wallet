@@ -46,15 +46,15 @@ export function createSeedDb(): WalletDb {
       { id: 'ps_hyeonsu_transfer', nameKo: '현수 계좌 이체', nameEn: 'Hyeonsu transfer', kind: 'account', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank', isActive: true },
     ],
 
-    // 카테고리 (영문 id, 화면 라벨은 i18n)
+    // 카테고리 (영문 id, 표시 이름은 nameKo/nameEn)
     categories: [
-      { id: 'food', builtin: true },
-      { id: 'cafe', builtin: true },
-      { id: 'transport', builtin: true },
-      { id: 'date', builtin: true },
-      { id: 'shopping', builtin: true },
-      { id: 'home', builtin: true },
-      { id: 'other', builtin: true },
+      { id: 'food', nameKo: '식비', nameEn: 'Food', budgetMonthly: 800000, isActive: true, builtin: true },
+      { id: 'cafe', nameKo: '카페', nameEn: 'Cafe', budgetMonthly: 150000, isActive: true, builtin: true },
+      { id: 'transport', nameKo: '교통', nameEn: 'Transport', budgetMonthly: 100000, isActive: true, builtin: true },
+      { id: 'date', nameKo: '데이트', nameEn: 'Date', budgetMonthly: 400000, isActive: true, builtin: true },
+      { id: 'shopping', nameKo: '쇼핑', nameEn: 'Shopping', budgetMonthly: 500000, isActive: true, builtin: true },
+      { id: 'home', nameKo: '집/생활', nameEn: 'Home', budgetMonthly: 300000, isActive: true, builtin: true },
+      { id: 'other', nameKo: '기타', nameEn: 'Other', isActive: true, builtin: true },
     ],
 
     // 최근 우리 지출
@@ -91,14 +91,14 @@ export function createSeedDb(): WalletDb {
       { id: 'rec_savings_transfer', direction: 'expense', labelKey: 'recurring.savings_transfer', amountOriginal: 500000, currency: 'KRW', amountKrw: 500000, daysOfMonth: [25], accountId: 'acc_hyeonsu_savings', status: 'skip' },
     ],
 
-    // 빠른 입력 버튼
+    // 빠른 입력 버튼 (sortOrder 순서대로 표시)
     quickActions: [
-      { id: 'q_lunch', labelKey: 'quick.lunch', amountOriginal: 12000, currency: 'KRW', amountKrw: 12000, categoryId: 'food' },
-      { id: 'q_cafe', labelKey: 'quick.cafe', amountOriginal: 6000, currency: 'KRW', amountKrw: 6000, categoryId: 'cafe' },
-      { id: 'q_subway', labelKey: 'quick.subway', amountOriginal: 1500, currency: 'KRW', amountKrw: 1500, categoryId: 'transport' },
-      { id: 'q_coupang', labelKey: 'quick.coupang', amountOriginal: 25000, currency: 'KRW', amountKrw: 25000, categoryId: 'shopping' },
-      { id: 'q_tanner_snack', labelKey: 'quick.tanner_snack', amountOriginal: 10000, currency: 'KRW', amountKrw: 10000, categoryId: 'food', usedFor: 'tanner' },
-      { id: 'q_date_meal', labelKey: 'quick.date_meal', amountOriginal: 50000, currency: 'KRW', amountKrw: 50000, categoryId: 'date' },
+      { id: 'q_lunch', labelKey: 'quick.lunch', amountOriginal: 12000, currency: 'KRW', amountKrw: 12000, categoryId: 'food', isActive: true, sortOrder: 0 },
+      { id: 'q_cafe', labelKey: 'quick.cafe', amountOriginal: 6000, currency: 'KRW', amountKrw: 6000, categoryId: 'cafe', isActive: true, sortOrder: 1 },
+      { id: 'q_subway', labelKey: 'quick.subway', amountOriginal: 1500, currency: 'KRW', amountKrw: 1500, categoryId: 'transport', isActive: true, sortOrder: 2 },
+      { id: 'q_coupang', labelKey: 'quick.coupang', amountOriginal: 25000, currency: 'KRW', amountKrw: 25000, categoryId: 'shopping', isActive: true, sortOrder: 3 },
+      { id: 'q_tanner_snack', labelKey: 'quick.tanner_snack', amountOriginal: 10000, currency: 'KRW', amountKrw: 10000, categoryId: 'food', usedFor: 'tanner', isActive: true, sortOrder: 4 },
+      { id: 'q_date_meal', labelKey: 'quick.date_meal', amountOriginal: 50000, currency: 'KRW', amountKrw: 50000, categoryId: 'date', isActive: true, sortOrder: 5 },
     ],
   }
 }

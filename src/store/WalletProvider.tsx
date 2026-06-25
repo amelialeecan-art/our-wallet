@@ -35,6 +35,16 @@ import {
   type NewPaymentSourceInput,
   type PaymentSourcePatch,
 } from '../domain/accounts'
+import {
+  applyCategoryPatch,
+  applyQuickActionPatch,
+  createCategory,
+  createQuickAction,
+  type CategoryPatch,
+  type NewCategoryInput,
+  type NewQuickActionInput,
+  type QuickActionPatch,
+} from '../domain/catalog'
 import type {
   Currency,
   Lang,
@@ -49,6 +59,7 @@ import type {
 // 삭제 결과 (데이터 무결성 안내용)
 export type AccountDeleteResult = 'deleted' | 'linked-payment' | 'used-in-tx' | 'error'
 export type PaymentSourceDeleteResult = 'deleted' | 'used-in-tx' | 'is-default' | 'error'
+export type CategoryDeleteResult = 'deleted' | 'used-in-tx' | 'error'
 
 // 현재 역할 기준 기본 결제통로: 같은 보관자의 카드 → 같은 보관자의 통로 → 첫 통로
 function deriveDefaultPaymentSource(sources: PaymentSource[], role: Role | null): string | null {
@@ -90,6 +101,16 @@ interface WalletContextValue {
   deletePaymentSource: (id: string) => PaymentSourceDeleteResult
   // 역할별 기본값
   updatePersonDefaults: (role: Role, patch: Partial<PersonDefaults>) => void
+  // 카테고리
+  addCategory: (input: NewCategoryInput) => boolean
+  updateCategory: (id: string, patch: CategoryPatch) => boolean
+  setCategoryActive: (id: string, isActive: boolean) => boolean
+  deleteCategory: (id: string) => CategoryDeleteResult
+  // 빠른버튼
+  addQuickAction: (input: NewQuickActionInput) => boolean
+  updateQuickAction: (id: string, patch: QuickActionPatch) => boolean
+  deleteQuickAction: (id: string) => boolean
+  moveQuickAction: (id: string, direction: 'up' | 'down') => boolean
   resetData: () => void
 }
 
@@ -345,6 +366,110 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // ----- 카테고리 -----
+    function addCategory(input: NewCategoryInput): boolean {
+      try {
+        const cat = createCategory(input)
+        if (!cat) return false
+        setDb((prev) => ({ ...prev, categories: [...prev.categories, cat] }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function updateCategory(id: string, patch: CategoryPatch): boolean {
+      try {
+        const existing = db.categories.find((c) => c.id === id)
+        if (!existing) return false
+        const updated = applyCategoryPatch(existing, patch)
+        if (!updated) return false
+        setDb((prev) => ({ ...prev, categories: prev.categories.map((c) => (c.id === id ? updated : c)) }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function setCategoryActive(id: string, isActive: boolean): boolean {
+      try {
+        if (!db.categories.some((c) => c.id === id)) return false
+        setDb((prev) => ({
+          ...prev,
+          categories: prev.categories.map((c) => (c.id === id ? { ...c, isActive } : c)),
+        }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    // 거래에서 쓰는 카테고리는 실제 삭제 대신 숨김(데이터 무결성). 안 쓰는 것만 삭제.
+    function deleteCategory(id: string): CategoryDeleteResult {
+      try {
+        if (!db.categories.some((c) => c.id === id)) return 'error'
+        if (db.transactions.some((t) => t.categoryId === id)) return 'used-in-tx'
+        setDb((prev) => ({ ...prev, categories: prev.categories.filter((c) => c.id !== id) }))
+        return 'deleted'
+      } catch {
+        return 'error'
+      }
+    }
+
+    // ----- 빠른버튼 -----
+    function addQuickAction(input: NewQuickActionInput): boolean {
+      try {
+        const nextOrder = db.quickActions.reduce((m, q) => Math.max(m, q.sortOrder ?? 0), -1) + 1
+        const qa = createQuickAction({ sortOrder: nextOrder, ...input }, db.settings.fxRate)
+        if (!qa) return false
+        setDb((prev) => ({ ...prev, quickActions: [...prev.quickActions, qa] }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function updateQuickAction(id: string, patch: QuickActionPatch): boolean {
+      try {
+        const existing = db.quickActions.find((q) => q.id === id)
+        if (!existing) return false
+        const updated = applyQuickActionPatch(existing, patch, db.settings.fxRate)
+        if (!updated) return false
+        setDb((prev) => ({ ...prev, quickActions: prev.quickActions.map((q) => (q.id === id ? updated : q)) }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function deleteQuickAction(id: string): boolean {
+      try {
+        if (!db.quickActions.some((q) => q.id === id)) return false
+        setDb((prev) => ({ ...prev, quickActions: prev.quickActions.filter((q) => q.id !== id) }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    // 위/아래 이동: sortOrder 기준 정렬 후 이웃과 순서값 교환
+    function moveQuickAction(id: string, direction: 'up' | 'down'): boolean {
+      try {
+        const sorted = [...db.quickActions].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        const idx = sorted.findIndex((q) => q.id === id)
+        if (idx < 0) return false
+        const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+        if (swapIdx < 0 || swapIdx >= sorted.length) return false
+        const a = sorted[idx]
+        const b = sorted[swapIdx]
+        const ao = a.sortOrder ?? idx
+        const bo = b.sortOrder ?? swapIdx
+        setDb((prev) => ({
+          ...prev,
+          quickActions: prev.quickActions.map((q) =>
+            q.id === a.id ? { ...q, sortOrder: bo } : q.id === b.id ? { ...q, sortOrder: ao } : q,
+          ),
+        }))
+        return true
+      } catch {
+        return false
+      }
+    }
+
     return {
       db,
       device,
@@ -369,6 +494,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       updatePaymentSource,
       deletePaymentSource,
       updatePersonDefaults,
+      addCategory,
+      updateCategory,
+      setCategoryActive,
+      deleteCategory,
+      addQuickAction,
+      updateQuickAction,
+      deleteQuickAction,
+      moveQuickAction,
       resetData,
     }
   }, [db, device])

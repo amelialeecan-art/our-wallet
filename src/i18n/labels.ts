@@ -4,9 +4,11 @@
 
 import type {
   Account,
+  Category,
   HolderLabel,
   Lang,
   PaymentSource,
+  QuickAction,
   RecurringStatus,
   UsedFor,
 } from '../domain/types'
@@ -150,6 +152,20 @@ export function accountSubtitle(acc: Account, lang: Lang): string {
 
 export function paymentSourceTitle(ps: PaymentSource, lang: Lang): string {
   return (lang === 'ko' ? ps.nameKo : ps.nameEn) || ps.nameKo || ps.nameEn || ''
+}
+
+// 카테고리 라벨: 저장된 이름 우선, 없으면 기본 카테고리 i18n, 그것도 없으면 id.
+// 숨겨진(inactive) 카테고리도 과거 거래 표시를 위해 라벨이 나와야 한다.
+export function categoryLabel(categoryId: string, categories: Category[], lang: Lang): string {
+  const c = categories.find((x) => x.id === categoryId)
+  if (c && (c.nameKo || c.nameEn)) return (lang === 'ko' ? c.nameKo : c.nameEn) || c.nameKo || c.nameEn || categoryId
+  return tEnum('category', categoryId, lang)
+}
+
+// 빠른버튼 이름: titleKo/En 우선, 없으면 구버전 labelKey/label
+export function quickActionTitle(q: QuickAction, lang: Lang): string {
+  if (q.titleKo || q.titleEn) return (lang === 'ko' ? q.titleKo : q.titleEn) || q.titleKo || q.titleEn || ''
+  return tItemLabel(q, lang)
 }
 
 // 반복 항목 날짜 표기: [1,15] → '매월 1·15일'

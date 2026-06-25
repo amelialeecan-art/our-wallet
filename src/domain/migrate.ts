@@ -7,14 +7,28 @@ import { createSeedDb } from './seed'
 import type {
   Account,
   AccountKind,
+  Budget,
+  Category,
   Currency,
   HolderLabel,
   PaymentKind,
   PaymentSource,
   PersonDefaults,
+  QuickAction,
   Role,
   WalletDb,
 } from './types'
+
+// 기본 카테고리 이름 (구버전 데이터에 nameKo/nameEn이 없을 때 채움)
+const BUILTIN_CATEGORY_NAMES: Record<string, { ko: string; en: string }> = {
+  food: { ko: '식비', en: 'Food' },
+  cafe: { ko: '카페', en: 'Cafe' },
+  transport: { ko: '교통', en: 'Transport' },
+  date: { ko: '데이트', en: 'Date' },
+  shopping: { ko: '쇼핑', en: 'Shopping' },
+  home: { ko: '집/생활', en: 'Home' },
+  other: { ko: '기타', en: 'Other' },
+}
 
 const CURRENT_VERSION = 2
 
@@ -103,6 +117,42 @@ function defaultPersonDefaults(paymentSources: PaymentSource[]): Record<Role, Pe
   }
 }
 
+// 구버전 카테고리 → 현재 구조 (이름/예산/활성 채움)
+function migrateCategory(c: Partial<Category>, budgets: Budget[]): Category {
+  const id = c.id ?? 'cat_' + Math.random().toString(36).slice(2, 8)
+  const builtinName = BUILTIN_CATEGORY_NAMES[id]
+  // 예산: category.budgetMonthly가 없으면 옛 budget.byCategory에서 가져온다
+  const legacyBudget = budgets[0]?.byCategory?.[id]
+  return {
+    id,
+    nameKo: c.nameKo ?? builtinName?.ko ?? id,
+    nameEn: c.nameEn ?? builtinName?.en ?? id,
+    icon: c.icon,
+    budgetMonthly: c.budgetMonthly ?? (typeof legacyBudget === 'number' ? legacyBudget : undefined),
+    isActive: c.isActive ?? true,
+    builtin: c.builtin ?? !!builtinName,
+  }
+}
+
+function migrateQuickAction(q: Partial<QuickAction>, index: number): QuickAction {
+  return {
+    id: q.id ?? 'q_' + Math.random().toString(36).slice(2, 8),
+    labelKey: q.labelKey,
+    label: q.label,
+    titleKo: q.titleKo,
+    titleEn: q.titleEn,
+    amountOriginal: Number(q.amountOriginal) || 0,
+    currency: asCurrency(q.currency),
+    amountKrw: Number(q.amountKrw ?? (q.currency === 'USD' ? Number(q.amountOriginal) * USD_TO_KRW : Number(q.amountOriginal))) || 0,
+    categoryId: q.categoryId ?? 'other',
+    usedFor: q.usedFor,
+    paymentSourceId: q.paymentSourceId,
+    memo: q.memo,
+    isActive: q.isActive ?? true,
+    sortOrder: q.sortOrder ?? index,
+  }
+}
+
 export function migrateDb(raw: unknown): WalletDb {
   const seed = createSeedDb()
   const db = (raw ?? {}) as Partial<WalletDb>
@@ -112,6 +162,13 @@ export function migrateDb(raw: unknown): WalletDb {
   )
   const paymentSources = (Array.isArray(db.paymentSources) ? db.paymentSources : seed.paymentSources).map((p) =>
     migratePaymentSource(p as Partial<PaymentSource>),
+  )
+  const budgets = Array.isArray(db.budgets) ? db.budgets : seed.budgets
+  const categories = (Array.isArray(db.categories) ? db.categories : seed.categories).map((c) =>
+    migrateCategory(c as Partial<Category>, budgets),
+  )
+  const quickActions = (Array.isArray(db.quickActions) ? db.quickActions : seed.quickActions).map((q, i) =>
+    migrateQuickAction(q as Partial<QuickAction>, i),
   )
 
   const prevSettings = (db.settings ?? {}) as Partial<WalletDb['settings']>
@@ -127,10 +184,10 @@ export function migrateDb(raw: unknown): WalletDb {
     settings,
     accounts,
     paymentSources,
-    categories: Array.isArray(db.categories) ? db.categories : seed.categories,
+    categories,
     transactions: Array.isArray(db.transactions) ? db.transactions : seed.transactions,
-    budgets: Array.isArray(db.budgets) ? db.budgets : seed.budgets,
+    budgets,
     recurringItems: Array.isArray(db.recurringItems) ? db.recurringItems : seed.recurringItems,
-    quickActions: Array.isArray(db.quickActions) ? db.quickActions : seed.quickActions,
+    quickActions,
   }
 }

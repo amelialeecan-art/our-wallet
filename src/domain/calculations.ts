@@ -6,6 +6,7 @@
 import type {
   Account,
   Budget,
+  Category,
   Currency,
   HolderLabel,
   PaymentSource,
@@ -105,13 +106,12 @@ export interface CategoryBudgetUsage {
   rate: number // 0~1+ (한도 0이면 0)
 }
 
+// 카테고리별 예산 한도는 category.budgetMonthly에서 가져온다.
 export function getBudgetUsedByCategory(
   transactions: Transaction[],
-  budgets: Budget[],
+  categories: Category[],
   month: string,
 ): CategoryBudgetUsage[] {
-  const budget = getBudgetForMonth(budgets, month)
-  if (!budget) return []
   const monthTx = getTransactionsForMonth(transactions, month).filter((t) => t.type === 'expense')
 
   const usedByCat = new Map<string, number>()
@@ -119,12 +119,14 @@ export function getBudgetUsedByCategory(
     usedByCat.set(t.categoryId, (usedByCat.get(t.categoryId) ?? 0) + t.amountKrw)
   }
 
-  return Object.entries(budget.byCategory).map(([categoryId, limitRaw]) => {
-    const limitKrw = limitRaw ?? 0
-    const usedKrw = usedByCat.get(categoryId) ?? 0
-    const rate = limitKrw > 0 ? usedKrw / limitKrw : 0
-    return { categoryId, usedKrw, limitKrw, rate }
-  })
+  return categories
+    .filter((c) => (c.budgetMonthly ?? 0) > 0)
+    .map((c) => {
+      const limitKrw = c.budgetMonthly ?? 0
+      const usedKrw = usedByCat.get(c.id) ?? 0
+      const rate = limitKrw > 0 ? usedKrw / limitKrw : 0
+      return { categoryId: c.id, usedKrw, limitKrw, rate }
+    })
 }
 
 export function getBudgetRemaining(

@@ -99,6 +99,11 @@ export interface PaymentSource {
 // ----- 카테고리 -----
 export interface Category {
   id: CategoryId | string
+  nameKo?: string
+  nameEn?: string
+  icon?: string
+  budgetMonthly?: number // 이번 달 카테고리 예산(KRW). 0/미설정이면 예산 없음
+  isActive?: boolean // 기본 true. false면 AddScreen 칩에서 숨김(과거 거래 라벨은 유지)
   builtin: boolean
 }
 
@@ -137,14 +142,19 @@ export interface Budget {
 // ----- 빠른 입력 버튼 -----
 export interface QuickAction {
   id: string
-  labelKey?: string // 기본 제공 항목은 i18n 키로
-  label?: string // 사용자가 직접 만든 항목은 자유 텍스트로
+  labelKey?: string // 기본 제공 항목은 i18n 키로 (구버전 호환)
+  label?: string // 구버전 자유 텍스트
+  titleKo?: string // 사용자 지정 이름
+  titleEn?: string
   amountOriginal: number
   currency: Currency
   amountKrw: number
   categoryId: CategoryId | string
   usedFor?: UsedFor
   paymentSourceId?: string
+  memo?: string
+  isActive?: boolean // 기본 true
+  sortOrder?: number // 작을수록 먼저
 }
 
 // ----- 반복 항목 (월급·고정지출) -----

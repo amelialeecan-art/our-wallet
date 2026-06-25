@@ -16,6 +16,10 @@ import AccountEditScreen from './screens/AccountEditScreen.tsx'
 import PaymentSourcesSettingsScreen from './screens/PaymentSourcesSettingsScreen.tsx'
 import PaymentSourceEditScreen from './screens/PaymentSourceEditScreen.tsx'
 import DefaultsSettingsScreen from './screens/DefaultsSettingsScreen.tsx'
+import CategoriesSettingsScreen from './screens/CategoriesSettingsScreen.tsx'
+import CategoryEditScreen from './screens/CategoryEditScreen.tsx'
+import QuickActionsSettingsScreen from './screens/QuickActionsSettingsScreen.tsx'
+import QuickActionEditScreen from './screens/QuickActionEditScreen.tsx'
 import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
 import type { ScreenId } from './types'
 
@@ -26,6 +30,8 @@ function AppInner() {
   const [editingTxId, setEditingTxId] = useState<string | null>(null)
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
   const [editingPsId, setEditingPsId] = useState<string | null>(null)
+  const [editingCatId, setEditingCatId] = useState<string | null>(null)
+  const [editingQaId, setEditingQaId] = useState<string | null>(null)
 
   function go(id: ScreenId) {
     setScreen(id)
@@ -44,6 +50,14 @@ function AppInner() {
   function openPsEdit(id: string | null) {
     setEditingPsId(id)
     go('paymentSourceEdit')
+  }
+  function openCatEdit(id: string | null) {
+    setEditingCatId(id)
+    go('categoryEdit')
+  }
+  function openQaEdit(id: string | null) {
+    setEditingQaId(id)
+    go('quickActionEdit')
   }
 
   // 역할 미선택 시 역할 선택 화면 (탭바 없이)
@@ -66,6 +80,10 @@ function AppInner() {
       <PaymentSourcesSettingsScreen active={screen === 'paymentSourcesSettings'} onGo={go} onEdit={openPsEdit} />
       <PaymentSourceEditScreen key={'ps-' + (editingPsId ?? 'new')} active={screen === 'paymentSourceEdit'} paymentSourceId={editingPsId} onDone={() => go('paymentSourcesSettings')} />
       <DefaultsSettingsScreen active={screen === 'defaultsSettings'} onGo={go} />
+      <CategoriesSettingsScreen active={screen === 'categoriesSettings'} onGo={go} onEdit={openCatEdit} />
+      <CategoryEditScreen key={'cat-' + (editingCatId ?? 'new')} active={screen === 'categoryEdit'} categoryId={editingCatId} onDone={() => go('categoriesSettings')} />
+      <QuickActionsSettingsScreen active={screen === 'quickActionsSettings'} onGo={go} onEdit={openQaEdit} />
+      <QuickActionEditScreen key={'qa-' + (editingQaId ?? 'new')} active={screen === 'quickActionEdit'} quickActionId={editingQaId} onDone={() => go('quickActionsSettings')} />
 
       <TabBar screen={screen} onGo={go} />
       <div className="toast" id="toast">저장됐어요</div>

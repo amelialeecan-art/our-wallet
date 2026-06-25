@@ -10,6 +10,7 @@ import {
 } from '../domain/calculations.ts'
 import {
   accountTitle,
+  categoryLabel,
   colorClass,
   paymentSourceTitle,
   tEnum,
@@ -103,7 +104,7 @@ export default function SpendingScreen({ active }: { active: boolean }) {
             <div className="sect" style={{ padding: 0, marginBottom: 6 }}>카테고리별</div>
             <BreakdownList
               rows={byCategory}
-              labelOf={(b) => tEnum('category', b.key, lang)}
+              labelOf={(b) => categoryLabel(b.key, db.categories, lang)}
             />
           </div>
         </div>

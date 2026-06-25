@@ -9,7 +9,7 @@ import {
   getBudgetUsedByCategory,
   getMonthlyExpenseTotal,
 } from '../domain/calculations.ts'
-import { tEnum } from '../i18n/labels.ts'
+import { categoryLabel } from '../i18n/labels.ts'
 
 export default function BudgetScreen({ active }: { active: boolean }) {
   const ref = useRef<HTMLElement>(null)
@@ -21,7 +21,7 @@ export default function BudgetScreen({ active }: { active: boolean }) {
   const total = getBudgetTotal(db.budgets, month)
   const used = getMonthlyExpenseTotal(db.transactions, month)
   const usagePct = Math.round(getBudgetUsageRate(db.budgets, db.transactions, month) * 100)
-  const byCat = getBudgetUsedByCategory(db.transactions, db.budgets, month)
+  const byCat = getBudgetUsedByCategory(db.transactions, db.categories, month)
     .slice()
     .sort((a, b) => b.rate - a.rate)
 
@@ -45,7 +45,7 @@ export default function BudgetScreen({ active }: { active: boolean }) {
             return (
               <div className="fillrow" key={c.categoryId}>
                 <div className="fillhead">
-                  <span>{tEnum('category', c.categoryId, lang)} {over && <span className="tagover">초과</span>}</span>
+                  <span>{categoryLabel(c.categoryId, db.categories, lang)} {over && <span className="tagover">초과</span>}</span>
                   <span className="pct">{pct}%</span>
                 </div>
                 <div className="track"><div className={'fill' + (over ? ' over' : '')} data-w={Math.min(100, pct)}></div></div>

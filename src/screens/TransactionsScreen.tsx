@@ -5,7 +5,7 @@ import {
   getActiveMonth,
   getTransactionsForMonth,
 } from '../domain/calculations.ts'
-import { colorClass, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
+import { categoryLabel, colorClass, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
 import type { ScreenId } from '../types'
 import type { Transaction, TransactionType } from '../domain/types'
 
@@ -34,7 +34,7 @@ export default function TransactionsScreen({ active, onGo, onEdit }: Props) {
   const row = (t: Transaction) => {
     const ps = psById.get(t.paymentSourceId)
     const cls = colorClass(t.usedFor)
-    const cat = tEnum('category', t.categoryId, lang)
+    const cat = categoryLabel(t.categoryId, db.categories, lang)
     // 반복항목으로 생성된 거래는 출처 라벨을 함께 보여준다.
     const recurringTag =
       t.sourceKind === 'recurring'

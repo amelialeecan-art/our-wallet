@@ -18,6 +18,7 @@ import {
 import {
   accountSubtitle,
   accountTitle,
+  categoryLabel,
   colorClass,
   paymentSourceTitle,
   tEnum,
@@ -185,8 +186,8 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
               return (
                 <div className="gl prow" key={t.id} onClick={() => onEdit(t.id)}>
                   <div className="grow">
-                    <div className="aname">{t.memo || tEnum('category', t.categoryId, lang)}</div>
-                    <div className="atype">{tEnum('category', t.categoryId, lang)}{ps ? ' · ' + paymentSourceTitle(ps, lang) : ''}</div>
+                    <div className="aname">{t.memo || categoryLabel(t.categoryId, db.categories, lang)}</div>
+                    <div className="atype">{categoryLabel(t.categoryId, db.categories, lang)}{ps ? ' · ' + paymentSourceTitle(ps, lang) : ''}</div>
                   </div>
                   <div className="r">
                     <div className="m num">{formatMoney(t.amountKrw, cur, fxRate)}</div>

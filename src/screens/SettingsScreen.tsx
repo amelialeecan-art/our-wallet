@@ -37,8 +37,8 @@ export default function SettingsScreen({ active, onGo }: { active: boolean; onGo
             <div className="gl prow" onClick={() => onGo('accountsSettings')}><div className="st-t">계좌 관리</div><span className="chev">›</span></div>
             <div className="gl prow" onClick={() => onGo('paymentSourcesSettings')}><div className="st-t">카드 · 결제통로 관리</div><span className="chev">›</span></div>
             <div className="gl prow" onClick={() => onGo('defaultsSettings')}><div className="st-t">기본 입력값 설정</div><span className="chev">›</span></div>
-            <div className="gl prow"><div className="st-t muted">카테고리 관리 (준비 중)</div><span className="chev">›</span></div>
-            <div className="gl prow"><div className="st-t muted">빠른 버튼 관리 (준비 중)</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('categoriesSettings')}><div className="st-t">카테고리 관리</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('quickActionsSettings')}><div className="st-t">빠른 버튼 관리</div><span className="chev">›</span></div>
           </div>
         </div>
         <div>

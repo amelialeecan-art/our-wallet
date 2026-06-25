@@ -2,7 +2,7 @@ import { useState } from 'react'
 import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
-import { colorClass, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
+import { categoryLabel, colorClass, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
 import type { Currency } from '../types'
 import type { UsedFor } from '../domain/types'
 
@@ -139,9 +139,9 @@ export default function TransactionEditScreen({ active, txId, onDone }: Props) {
         <div>
           <div className="sect">카테고리</div>
           <div className="chips">
-            {db.categories.map((c) => (
+            {db.categories.filter((c) => c.isActive !== false || c.id === catId).map((c) => (
               <button key={c.id} className={'chip' + (catId === c.id ? ' sel' : '')} onClick={() => setCatId(c.id)}>
-                {tEnum('category', c.id, lang)}
+                {categoryLabel(c.id, db.categories, lang)}
               </button>
             ))}
           </div>

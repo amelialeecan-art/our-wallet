@@ -3,7 +3,7 @@ import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
 import { formatMoney } from '../domain/calculations.ts'
-import { colorClass, paymentSourceTitle, tEnum, tItemLabel } from '../i18n/labels.ts'
+import { categoryLabel, colorClass, paymentSourceTitle, quickActionTitle, tEnum } from '../i18n/labels.ts'
 import type { Currency } from '../types'
 import type { UsedFor } from '../domain/types'
 
@@ -46,6 +46,13 @@ export default function AddScreen({ active, cur, setCur }: Props) {
     })
   }
 
+  // 표시용 목록: 카테고리는 active만, 빠른버튼은 active를 sortOrder 순으로
+  const activeCategories = db.categories.filter((c) => c.isActive !== false)
+  const activeQuickActions = db.quickActions
+    .filter((q) => q.isActive !== false)
+    .slice()
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
   // 빠른 버튼: 금액·통화·카테고리·사용대상·결제통로·메모를 한 번에 채운다.
   function pickQuick(q: (typeof db.quickActions)[number]) {
     setRaw(String(q.amountOriginal))
@@ -53,7 +60,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
     setCatId(q.categoryId)
     if (q.usedFor) setUsedFor(q.usedFor)
     if (q.paymentSourceId) setPaymentSourceId(q.paymentSourceId)
-    setMemo(tItemLabel(q, lang))
+    setMemo(q.memo ?? quickActionTitle(q, lang))
     setKeypadOpen(false)
   }
 
@@ -125,9 +132,9 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         <div>
           <div className="sect">자주 쓰는 항목</div>
           <div className="quick">
-            {db.quickActions.map((q) => (
+            {activeQuickActions.map((q) => (
               <button key={q.id} className="gl qbtn" onClick={() => pickQuick(q)}>
-                <div className="qn">{tItemLabel(q, lang)}</div>
+                <div className="qn">{quickActionTitle(q, lang)}</div>
                 <div className="qa num">{formatMoney(q.amountKrw, q.currency, fxRate)}</div>
               </button>
             ))}
@@ -137,9 +144,9 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         <div>
           <div className="sect">카테고리</div>
           <div className="chips">
-            {db.categories.map((c) => (
+            {activeCategories.map((c) => (
               <button key={c.id} className={'chip' + (catId === c.id ? ' sel' : '')} onClick={() => setCatId(c.id)}>
-                {tEnum('category', c.id, lang)}
+                {categoryLabel(c.id, db.categories, lang)}
               </button>
             ))}
           </div>
