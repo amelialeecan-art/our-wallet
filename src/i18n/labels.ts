@@ -9,6 +9,7 @@ import type {
   Lang,
   PaymentSource,
   QuickAction,
+  RecurringItem,
   RecurringStatus,
   UsedFor,
 } from '../domain/types'
@@ -68,6 +69,11 @@ const ENUMS: Record<string, Group> = {
     due: { ko: '예정', en: 'Due' },
     done: { ko: '완료', en: 'Done' },
     skip: { ko: '건너뜀', en: 'Skipped' },
+  },
+  recurringType: {
+    income: { ko: '수입', en: 'Income' },
+    expense: { ko: '지출', en: 'Expense' },
+    transfer: { ko: '이체', en: 'Transfer' },
   },
   currency: {
     KRW: { ko: '원화 KRW', en: 'KRW' },
@@ -166,6 +172,12 @@ export function categoryLabel(categoryId: string, categories: Category[], lang: 
 export function quickActionTitle(q: QuickAction, lang: Lang): string {
   if (q.titleKo || q.titleEn) return (lang === 'ko' ? q.titleKo : q.titleEn) || q.titleKo || q.titleEn || ''
   return tItemLabel(q, lang)
+}
+
+// 반복항목 이름: titleKo/En 우선, 없으면 구버전 labelKey/label
+export function recurringTitle(r: RecurringItem, lang: Lang): string {
+  if (r.titleKo || r.titleEn) return (lang === 'ko' ? r.titleKo : r.titleEn) || r.titleKo || r.titleEn || ''
+  return tItemLabel(r, lang)
 }
 
 // 반복 항목 날짜 표기: [1,15] → '매월 1·15일'

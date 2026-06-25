@@ -20,6 +20,8 @@ import CategoriesSettingsScreen from './screens/CategoriesSettingsScreen.tsx'
 import CategoryEditScreen from './screens/CategoryEditScreen.tsx'
 import QuickActionsSettingsScreen from './screens/QuickActionsSettingsScreen.tsx'
 import QuickActionEditScreen from './screens/QuickActionEditScreen.tsx'
+import RecurringSettingsScreen from './screens/RecurringSettingsScreen.tsx'
+import RecurringEditScreen from './screens/RecurringEditScreen.tsx'
 import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
 import type { ScreenId } from './types'
 
@@ -32,6 +34,7 @@ function AppInner() {
   const [editingPsId, setEditingPsId] = useState<string | null>(null)
   const [editingCatId, setEditingCatId] = useState<string | null>(null)
   const [editingQaId, setEditingQaId] = useState<string | null>(null)
+  const [editingRecId, setEditingRecId] = useState<string | null>(null)
 
   function go(id: ScreenId) {
     setScreen(id)
@@ -59,6 +62,10 @@ function AppInner() {
     setEditingQaId(id)
     go('quickActionEdit')
   }
+  function openRecEdit(id: string | null) {
+    setEditingRecId(id)
+    go('recurringEdit')
+  }
 
   // 역할 미선택 시 역할 선택 화면 (탭바 없이)
   if (!role) return <RoleSelectScreen />
@@ -70,7 +77,7 @@ function AppInner() {
       <AssetsScreen active={screen === 'assets'} cur={displayCurrency} />
       <SpendingScreen active={screen === 'spending'} />
       <BudgetScreen active={screen === 'budget'} />
-      <ScheduleScreen active={screen === 'schedule'} />
+      <ScheduleScreen active={screen === 'schedule'} onGo={go} />
       <SettingsScreen active={screen === 'settings'} onGo={go} />
       <TransactionsScreen active={screen === 'transactions'} onGo={go} onEdit={openEdit} />
       <TransactionEditScreen key={'tx-' + (editingTxId ?? 'none')} active={screen === 'txedit'} txId={editingTxId} onDone={() => go('transactions')} />
@@ -84,6 +91,8 @@ function AppInner() {
       <CategoryEditScreen key={'cat-' + (editingCatId ?? 'new')} active={screen === 'categoryEdit'} categoryId={editingCatId} onDone={() => go('categoriesSettings')} />
       <QuickActionsSettingsScreen active={screen === 'quickActionsSettings'} onGo={go} onEdit={openQaEdit} />
       <QuickActionEditScreen key={'qa-' + (editingQaId ?? 'new')} active={screen === 'quickActionEdit'} quickActionId={editingQaId} onDone={() => go('quickActionsSettings')} />
+      <RecurringSettingsScreen active={screen === 'recurringSettings'} onGo={go} onEdit={openRecEdit} />
+      <RecurringEditScreen key={'rec-' + (editingRecId ?? 'new')} active={screen === 'recurringEdit'} recurringId={editingRecId} onDone={() => go('recurringSettings')} />
 
       <TabBar screen={screen} onGo={go} />
       <div className="toast" id="toast">저장됐어요</div>

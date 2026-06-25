@@ -23,3 +23,5 @@ export type ScreenId =
   | 'categoryEdit'
   | 'quickActionsSettings'
   | 'quickActionEdit'
+  | 'recurringSettings'
+  | 'recurringEdit'

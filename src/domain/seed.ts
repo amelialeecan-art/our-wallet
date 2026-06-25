@@ -80,15 +80,15 @@ export function createSeedDb(): WalletDb {
       },
     ],
 
-    // 반복 항목 (월급 / 고정지출)
+    // 반복 항목 (월급 / 고정지출 / 저축이체)
     recurringItems: [
-      { id: 'rec_tanner_pay', direction: 'income', labelKey: 'recurring.tanner_pay', amountOriginal: 2700000, currency: 'KRW', amountKrw: 2700000, daysOfMonth: [1, 15], status: 'due' },
-      { id: 'rec_hyeonsu_salary', direction: 'income', labelKey: 'recurring.hyeonsu_salary', amountOriginal: 3200000, currency: 'KRW', amountKrw: 3200000, daysOfMonth: [25], status: 'due' },
-      { id: 'rec_rent', direction: 'expense', labelKey: 'recurring.rent', amountOriginal: 900000, currency: 'KRW', amountKrw: 900000, daysOfMonth: [1], categoryId: 'home', status: 'due' },
-      { id: 'rec_maintenance', direction: 'expense', labelKey: 'recurring.maintenance', amountOriginal: 180000, currency: 'KRW', amountKrw: 180000, daysOfMonth: [5], categoryId: 'home', status: 'due' },
-      { id: 'rec_netflix', direction: 'expense', labelKey: 'recurring.netflix', amountOriginal: 17000, currency: 'KRW', amountKrw: 17000, daysOfMonth: [15], categoryId: 'other', status: 'due' },
-      { id: 'rec_card_bill', direction: 'expense', labelKey: 'recurring.card_bill', amountOriginal: 1400000, currency: 'KRW', amountKrw: 1400000, daysOfMonth: [12], status: 'done' },
-      { id: 'rec_savings_transfer', direction: 'expense', labelKey: 'recurring.savings_transfer', amountOriginal: 500000, currency: 'KRW', amountKrw: 500000, daysOfMonth: [25], accountId: 'acc_hyeonsu_savings', status: 'skip' },
+      { id: 'rec_tanner_pay', type: 'income', labelKey: 'recurring.tanner_pay', amountOriginal: 2700000, currency: 'KRW', fxRateUsed: USD_TO_KRW, amountKrw: 2700000, daysOfMonth: [1, 15], active: true, status: 'due' },
+      { id: 'rec_hyeonsu_salary', type: 'income', labelKey: 'recurring.hyeonsu_salary', amountOriginal: 3200000, currency: 'KRW', fxRateUsed: USD_TO_KRW, amountKrw: 3200000, daysOfMonth: [25], active: true, status: 'due' },
+      { id: 'rec_rent', type: 'expense', labelKey: 'recurring.rent', amountOriginal: 900000, currency: 'KRW', fxRateUsed: USD_TO_KRW, amountKrw: 900000, daysOfMonth: [1], categoryId: 'home', active: true, status: 'due' },
+      { id: 'rec_maintenance', type: 'expense', labelKey: 'recurring.maintenance', amountOriginal: 180000, currency: 'KRW', fxRateUsed: USD_TO_KRW, amountKrw: 180000, daysOfMonth: [5], categoryId: 'home', active: true, status: 'due' },
+      { id: 'rec_netflix', type: 'expense', labelKey: 'recurring.netflix', amountOriginal: 17000, currency: 'KRW', fxRateUsed: USD_TO_KRW, amountKrw: 17000, daysOfMonth: [15], categoryId: 'other', active: true, status: 'due' },
+      { id: 'rec_card_bill', type: 'expense', labelKey: 'recurring.card_bill', amountOriginal: 1400000, currency: 'KRW', fxRateUsed: USD_TO_KRW, amountKrw: 1400000, daysOfMonth: [12], active: true, status: 'done' },
+      { id: 'rec_savings_transfer', type: 'transfer', labelKey: 'recurring.savings_transfer', amountOriginal: 500000, currency: 'KRW', fxRateUsed: USD_TO_KRW, amountKrw: 500000, daysOfMonth: [25], accountId: 'acc_hyeonsu_savings', active: true, status: 'skip' },
     ],
 
     // 빠른 입력 버튼 (sortOrder 순서대로 표시)

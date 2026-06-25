@@ -15,6 +15,8 @@ import type {
   PaymentSource,
   PersonDefaults,
   QuickAction,
+  RecurringItem,
+  RecurringType,
   Role,
   WalletDb,
 } from './types'
@@ -153,6 +155,44 @@ function migrateQuickAction(q: Partial<QuickAction>, index: number): QuickAction
   }
 }
 
+// 구버전 반복항목(direction) → 현재 구조(type). 저축 계좌로 가는 지출은 transfer로.
+function migrateRecurring(r: Partial<RecurringItem> & { direction?: string }, savingAccountIds: Set<string>): RecurringItem {
+  let type: RecurringType
+  if (r.type === 'income' || r.type === 'expense' || r.type === 'transfer') {
+    type = r.type
+  } else if (r.direction === 'income') {
+    type = 'income'
+  } else if (r.accountId && savingAccountIds.has(r.accountId)) {
+    type = 'transfer'
+  } else {
+    type = 'expense'
+  }
+  const currency = asCurrency(r.currency)
+  const amountOriginal = Number(r.amountOriginal) || 0
+  const amountKrw = Number(r.amountKrw ?? (currency === 'USD' ? amountOriginal * USD_TO_KRW : amountOriginal)) || 0
+  const days = Array.isArray(r.daysOfMonth)
+    ? r.daysOfMonth.map((d) => Math.trunc(Number(d))).filter((d) => d >= 1 && d <= 31)
+    : []
+  return {
+    id: r.id ?? 'rec_' + Math.random().toString(36).slice(2, 8),
+    type,
+    titleKo: r.titleKo,
+    titleEn: r.titleEn,
+    labelKey: r.labelKey,
+    label: r.label,
+    amountOriginal,
+    currency,
+    fxRateUsed: r.fxRateUsed ?? USD_TO_KRW,
+    amountKrw,
+    daysOfMonth: days.length ? days : [1],
+    categoryId: r.categoryId,
+    paymentSourceId: r.paymentSourceId,
+    accountId: r.accountId,
+    active: r.active ?? true,
+    status: r.status,
+  }
+}
+
 export function migrateDb(raw: unknown): WalletDb {
   const seed = createSeedDb()
   const db = (raw ?? {}) as Partial<WalletDb>
@@ -169,6 +209,10 @@ export function migrateDb(raw: unknown): WalletDb {
   )
   const quickActions = (Array.isArray(db.quickActions) ? db.quickActions : seed.quickActions).map((q, i) =>
     migrateQuickAction(q as Partial<QuickAction>, i),
+  )
+  const savingAccountIds = new Set(accounts.filter((a) => a.tier === 'saving').map((a) => a.id))
+  const recurringItems = (Array.isArray(db.recurringItems) ? db.recurringItems : seed.recurringItems).map((r) =>
+    migrateRecurring(r as Partial<RecurringItem>, savingAccountIds),
   )
 
   const prevSettings = (db.settings ?? {}) as Partial<WalletDb['settings']>
@@ -187,7 +231,7 @@ export function migrateDb(raw: unknown): WalletDb {
     categories,
     transactions: Array.isArray(db.transactions) ? db.transactions : seed.transactions,
     budgets,
-    recurringItems: Array.isArray(db.recurringItems) ? db.recurringItems : seed.recurringItems,
+    recurringItems,
     quickActions,
   }
 }

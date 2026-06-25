@@ -24,7 +24,13 @@ import {
   recurringTxType,
   toKrw,
 } from '../domain/calculations'
-import { tItemLabel } from '../i18n/labels'
+import { recurringTitle } from '../i18n/labels'
+import {
+  applyRecurringPatch,
+  createRecurringItem,
+  type NewRecurringInput,
+  type RecurringPatch,
+} from '../domain/recurring'
 import {
   applyAccountPatch,
   applyPaymentSourcePatch,
@@ -60,6 +66,7 @@ import type {
 export type AccountDeleteResult = 'deleted' | 'linked-payment' | 'used-in-tx' | 'error'
 export type PaymentSourceDeleteResult = 'deleted' | 'used-in-tx' | 'is-default' | 'error'
 export type CategoryDeleteResult = 'deleted' | 'used-in-tx' | 'error'
+export type RecurringDeleteResult = 'deleted' | 'hidden' | 'error'
 
 // 현재 역할 기준 기본 결제통로: 같은 보관자의 카드 → 같은 보관자의 통로 → 첫 통로
 function deriveDefaultPaymentSource(sources: PaymentSource[], role: Role | null): string | null {
@@ -111,6 +118,10 @@ interface WalletContextValue {
   updateQuickAction: (id: string, patch: QuickActionPatch) => boolean
   deleteQuickAction: (id: string) => boolean
   moveQuickAction: (id: string, direction: 'up' | 'down') => boolean
+  // 반복항목
+  addRecurringItem: (input: NewRecurringInput) => boolean
+  updateRecurringItem: (id: string, patch: RecurringPatch) => boolean
+  deleteRecurringItem: (id: string) => RecurringDeleteResult
   resetData: () => void
 }
 
@@ -257,14 +268,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
         const day = String(item.daysOfMonth[0] ?? 1).padStart(2, '0')
         const date = options?.date ?? `${month}-${day}`
-        const kind = classifyRecurring(item, db.accounts)
+        const kind = classifyRecurring(item)
 
         const tx = createTransactionFromRecurring(item, {
           role: device.role,
           fxRate: db.settings.fxRate,
           type: recurringTxType(kind),
           date,
-          label: tItemLabel(item, device.lang),
+          label: recurringTitle(item, device.lang),
         })
         setDb((prev) => ({ ...prev, transactions: [...prev.transactions, tx] }))
         return 'applied'
@@ -470,6 +481,48 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // ----- 반복항목 -----
+    function addRecurringItem(input: NewRecurringInput): boolean {
+      try {
+        const item = createRecurringItem(input, db.settings.fxRate)
+        if (!item) return false
+        setDb((prev) => ({ ...prev, recurringItems: [...prev.recurringItems, item] }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    function updateRecurringItem(id: string, patch: RecurringPatch): boolean {
+      try {
+        const existing = db.recurringItems.find((r) => r.id === id)
+        if (!existing) return false
+        const updated = applyRecurringPatch(existing, patch, db.settings.fxRate)
+        if (!updated) return false
+        setDb((prev) => ({ ...prev, recurringItems: prev.recurringItems.map((r) => (r.id === id ? updated : r)) }))
+        return true
+      } catch {
+        return false
+      }
+    }
+    // 반영된 적 있는 항목은 실제 삭제 대신 숨김(거래 보존). 안 쓰던 것만 삭제.
+    function deleteRecurringItem(id: string): RecurringDeleteResult {
+      try {
+        if (!db.recurringItems.some((r) => r.id === id)) return 'error'
+        const wasApplied = db.transactions.some((t) => t.sourceRecurringItemId === id)
+        if (wasApplied) {
+          setDb((prev) => ({
+            ...prev,
+            recurringItems: prev.recurringItems.map((r) => (r.id === id ? { ...r, active: false } : r)),
+          }))
+          return 'hidden'
+        }
+        setDb((prev) => ({ ...prev, recurringItems: prev.recurringItems.filter((r) => r.id !== id) }))
+        return 'deleted'
+      } catch {
+        return 'error'
+      }
+    }
+
     return {
       db,
       device,
@@ -502,6 +555,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       updateQuickAction,
       deleteQuickAction,
       moveQuickAction,
+      addRecurringItem,
+      updateRecurringItem,
+      deleteRecurringItem,
       resetData,
     }
   }, [db, device])

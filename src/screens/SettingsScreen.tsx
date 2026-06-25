@@ -44,8 +44,7 @@ export default function SettingsScreen({ active, onGo }: { active: boolean; onGo
         <div>
           <div className="sect">반복 항목</div>
           <div className="prows">
-            <div className="gl prow"><div className="st-t">월급일 설정</div><span className="chev">›</span></div>
-            <div className="gl prow"><div className="st-t">고정지출 설정</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('recurringSettings')}><div className="st-t">반복 수입·고정지출 관리</div><span className="chev">›</span></div>
           </div>
         </div>
       </div>

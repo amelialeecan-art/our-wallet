@@ -21,8 +21,8 @@ import {
   categoryLabel,
   colorClass,
   paymentSourceTitle,
+  recurringTitle,
   tEnum,
-  tItemLabel,
 } from '../i18n/labels.ts'
 import type { Currency, ScreenId } from '../types'
 
@@ -161,12 +161,12 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
           <div className="hscroll">
             {pending.length === 0 && <div className="cap">이번 달 예정 항목을 모두 반영했어요</div>}
             {pending.map((r) => {
-              const sign = r.direction === 'income' ? '+' : '−'
+              const sign = r.type === 'income' ? '+' : r.type === 'transfer' ? '→' : '−'
               return (
                 <div className="gl due" key={r.id} onClick={() => onGo('schedule')}>
                   <div className="wh">{lang === 'ko' ? `매월 ${r.daysOfMonth.join('·')}일` : `Monthly ${r.daysOfMonth.join(', ')}`}</div>
-                  <div className="nm">{tItemLabel(r, lang)}</div>
-                  <div className={'m num ' + (r.direction === 'income' ? 'm-in' : 'm-out')}>{sign}{formatMoney(r.amountKrw, cur, fxRate)}</div>
+                  <div className="nm">{recurringTitle(r, lang)}</div>
+                  <div className={'m num ' + (r.type === 'income' ? 'm-in' : 'm-out')}>{sign}{formatMoney(r.amountKrw, cur, fxRate)}</div>
                 </div>
               )
             })}

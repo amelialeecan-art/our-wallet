@@ -157,22 +157,27 @@ export interface QuickAction {
   sortOrder?: number // 작을수록 먼저
 }
 
-// ----- 반복 항목 (월급·고정지출) -----
+// ----- 반복 항목 (월급·고정지출·저축이체) -----
 export type RecurringStatus = 'due' | 'done' | 'skip'
+export type RecurringType = 'income' | 'expense' | 'transfer'
 
 export interface RecurringItem {
   id: string
-  direction: 'income' | 'expense'
-  labelKey?: string
+  type: RecurringType
+  titleKo?: string
+  titleEn?: string
+  labelKey?: string // 구버전 호환
   label?: string
   amountOriginal: number
   currency: Currency
+  fxRateUsed?: number
   amountKrw: number
-  daysOfMonth: number[] // 예: [1, 15]
+  daysOfMonth: number[] // 매월 N일 (1~31)
   categoryId?: CategoryId | string
   paymentSourceId?: string
   accountId?: string
-  status: RecurringStatus
+  active?: boolean // 기본 true. false면 Schedule/Home 예정에서 숨김
+  status?: RecurringStatus // skip 표시용 (done은 반영 기록으로 계산)
 }
 
 // ----- 역할별 기본 입력값 (가구 공용에 저장: 어느 기기든 그 역할이면 같은 기본값) -----

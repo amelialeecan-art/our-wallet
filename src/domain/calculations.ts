@@ -229,13 +229,10 @@ export function getRecentExpenses(transactions: Transaction[], n: number): Trans
     .slice(0, n)
 }
 
-// 이번 달 고정저축(반복 지출 중 적금/투자 계좌로 가는 항목) 합계
+// 이번 달 고정저축(이체 타입 반복항목) 합계
 export function getRecurringSavingsTotal(db: WalletDb): number {
-  const savingAccountIds = new Set(
-    db.accounts.filter((a) => a.tier === 'saving').map((a) => a.id),
-  )
   return db.recurringItems
-    .filter((r) => r.direction === 'expense' && r.accountId && savingAccountIds.has(r.accountId))
+    .filter((r) => r.type === 'transfer')
     .reduce((sum, r) => sum + r.amountKrw, 0)
 }
 
@@ -244,11 +241,10 @@ export function getRecurringSavingsTotal(db: WalletDb): number {
 export type RecurringKind = 'income' | 'expense' | 'savingTransfer'
 export type RecurringComputedStatus = 'due' | 'done' | 'skip'
 
-// 반복항목 분류: 수입 / 일반지출 / 저축이체(적금·투자 계좌로 가는 지출)
-export function classifyRecurring(item: RecurringItem, accounts: Account[]): RecurringKind {
-  if (item.direction === 'income') return 'income'
-  const acc = item.accountId ? accounts.find((a) => a.id === item.accountId) : undefined
-  if (acc && acc.tier === 'saving') return 'savingTransfer'
+// 반복항목 분류: 수입 / 일반지출 / 저축이체
+export function classifyRecurring(item: RecurringItem): RecurringKind {
+  if (item.type === 'income') return 'income'
+  if (item.type === 'transfer') return 'savingTransfer'
   return 'expense'
 }
 
@@ -281,9 +277,11 @@ export function getRecurringStatus(
   return 'due'
 }
 
-// 아직 반영되지 않은(예정) 반복항목들. skip 제외.
+// 아직 반영되지 않은(예정) 반복항목들. 숨김(active=false)·skip 제외.
 export function getPendingRecurring(db: WalletDb, month: string): RecurringItem[] {
-  return db.recurringItems.filter((r) => getRecurringStatus(r, db.transactions, month) === 'due')
+  return db.recurringItems.filter(
+    (r) => r.active !== false && getRecurringStatus(r, db.transactions, month) === 'due',
+  )
 }
 
 export interface MonthlyOutlook {
@@ -305,7 +303,7 @@ export function getMonthlyOutlook(db: WalletDb, month: string): MonthlyOutlook {
   let pendingExpense = 0
   let pendingSavingTransfer = 0
   for (const item of getPendingRecurring(db, month)) {
-    const kind = classifyRecurring(item, db.accounts)
+    const kind = classifyRecurring(item)
     if (kind === 'income') pendingIncome += item.amountKrw
     else if (kind === 'savingTransfer') pendingSavingTransfer += item.amountKrw
     else pendingExpense += item.amountKrw
