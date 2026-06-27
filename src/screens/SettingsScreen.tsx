@@ -8,7 +8,7 @@ export default function SettingsScreen({ active, onGo }: { active: boolean; onGo
   return (
     <section className={'screen' + (active ? ' active' : '')} id="settings">
       <div className="stack">
-        <div className="head">설정</div>
+        <div className="head">{tUi('settings.title', lang)}</div>
         <div className="prows">
           <div className="gl prow">
             <div className="grow"><div className="st-t">{tUi('settings.role', lang)}</div></div>
@@ -16,41 +16,41 @@ export default function SettingsScreen({ active, onGo }: { active: boolean; onGo
             <span className="edit" style={{ marginLeft: 10 }} onClick={clearRole}>{tUi('settings.change', lang)}</span>
           </div>
           <div className="gl prow">
-            <div className="grow"><div className="st-t">언어</div></div>
+            <div className="grow"><div className="st-t">{tUi('settings.language', lang)}</div></div>
             <div className="seg">
               <button className={lang === 'ko' ? 'on' : ''} onClick={() => setLang('ko')}>한국어</button>
               <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>English</button>
             </div>
           </div>
           <div className="gl prow">
-            <div className="grow"><div className="st-t">기본 통화</div></div>
+            <div className="grow"><div className="st-t">{tUi('settings.defaultCurrency', lang)}</div></div>
             <div className="seg">
               <button className={displayCurrency === 'KRW' ? 'on' : ''} onClick={() => setDisplayCurrency('KRW')}>KRW</button>
               <button className={displayCurrency === 'USD' ? 'on' : ''} onClick={() => setDisplayCurrency('USD')}>USD</button>
             </div>
           </div>
-          <div className="gl prow"><div className="grow"><div className="st-t">고정환율</div></div><span className="mini num">$1 = ₩{fxRate.toLocaleString('ko-KR')}</span></div>
+          <div className="gl prow"><div className="grow"><div className="st-t">{tUi('settings.fixedRate', lang)}</div></div><span className="mini num">$1 = ₩{fxRate.toLocaleString('ko-KR')}</span></div>
         </div>
         <div>
-          <div className="sect">우리 자산 구성</div>
+          <div className="sect">{tUi('settings.assetGroup', lang)}</div>
           <div className="prows">
-            <div className="gl prow" onClick={() => onGo('accountsSettings')}><div className="st-t">계좌 관리</div><span className="chev">›</span></div>
-            <div className="gl prow" onClick={() => onGo('paymentSourcesSettings')}><div className="st-t">카드 · 결제통로 관리</div><span className="chev">›</span></div>
-            <div className="gl prow" onClick={() => onGo('defaultsSettings')}><div className="st-t">기본 입력값 설정</div><span className="chev">›</span></div>
-            <div className="gl prow" onClick={() => onGo('categoriesSettings')}><div className="st-t">카테고리 관리</div><span className="chev">›</span></div>
-            <div className="gl prow" onClick={() => onGo('quickActionsSettings')}><div className="st-t">빠른 버튼 관리</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('accountsSettings')}><div className="st-t">{tUi('settings.accounts', lang)}</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('paymentSourcesSettings')}><div className="st-t">{tUi('settings.payments', lang)}</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('defaultsSettings')}><div className="st-t">{tUi('settings.defaults', lang)}</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('categoriesSettings')}><div className="st-t">{tUi('settings.categories', lang)}</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('quickActionsSettings')}><div className="st-t">{tUi('settings.quicks', lang)}</div><span className="chev">›</span></div>
           </div>
         </div>
         <div>
-          <div className="sect">반복 항목</div>
+          <div className="sect">{tUi('settings.recurringGroup', lang)}</div>
           <div className="prows">
-            <div className="gl prow" onClick={() => onGo('recurringSettings')}><div className="st-t">반복 수입·고정지출 관리</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('recurringSettings')}><div className="st-t">{tUi('settings.recurring', lang)}</div><span className="chev">›</span></div>
           </div>
         </div>
         <div>
-          <div className="sect">데이터</div>
+          <div className="sect">{tUi('settings.dataGroup', lang)}</div>
           <div className="prows">
-            <div className="gl prow" onClick={() => onGo('dataSettings')}><div className="st-t">백업 · 복원 · 초기화</div><span className="chev">›</span></div>
+            <div className="gl prow" onClick={() => onGo('dataSettings')}><div className="st-t">{tUi('settings.data', lang)}</div><span className="chev">›</span></div>
           </div>
         </div>
       </div>

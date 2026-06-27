@@ -1,6 +1,6 @@
 import { useWallet } from '../store/WalletProvider.tsx'
 import { formatMoney } from '../domain/calculations.ts'
-import { accountSubtitle, accountTitle, colorClass } from '../i18n/labels.ts'
+import { accountSubtitle, accountTitle, colorClass, tUi } from '../i18n/labels.ts'
 import type { ScreenId } from '../types'
 
 interface Props {
@@ -16,10 +16,10 @@ export default function AccountsSettingsScreen({ active, onGo, onEdit }: Props) 
     <section className={'screen' + (active ? ' active' : '')} id="accountsSettings">
       <div className="stack">
         <div className="between" style={{ padding: '0 4px' }}>
-          <div className="head" style={{ padding: 0 }}>계좌 관리</div>
-          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('settings')}>닫기</span>
+          <div className="head" style={{ padding: 0 }}>{tUi('acc.title', lang)}</div>
+          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('settings')}>{tUi('common.close', lang)}</span>
         </div>
-        <div className="cap" style={{ padding: '0 6px' }}>계좌는 우리 돈이 있는 보관 위치예요</div>
+        <div className="cap" style={{ padding: '0 6px' }}>{tUi('acc.note', lang)}</div>
 
         <div className="prows">
           {db.accounts.map((a) => (
@@ -37,7 +37,7 @@ export default function AccountsSettingsScreen({ active, onGo, onEdit }: Props) 
           ))}
         </div>
 
-        <button className="btn block" style={{ padding: 15 }} onClick={() => onEdit(null)}><span>＋ 계좌 추가</span></button>
+        <button className="btn block" style={{ padding: 15 }} onClick={() => onEdit(null)}><span>{tUi('acc.add', lang)}</span></button>
       </div>
     </section>
   )

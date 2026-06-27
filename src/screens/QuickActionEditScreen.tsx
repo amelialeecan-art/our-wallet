@@ -2,7 +2,7 @@ import { useState } from 'react'
 import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
-import { categoryLabel, colorClass, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
+import { categoryLabel, colorClass, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { Currency } from '../types'
 import type { UsedFor } from '../domain/types'
 
@@ -50,10 +50,10 @@ export default function QuickActionEditScreen({ active, quickActionId, onDone }:
       <section className={'screen' + (active ? ' active' : '')} id="quickActionEdit">
         <div className="stack">
           <div className="between" style={{ padding: '0 4px' }}>
-            <div className="head" style={{ padding: 0 }}>빠른 버튼 수정</div>
-            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>닫기</span>
+            <div className="head" style={{ padding: 0 }}>{tUi('qa.editTitle', lang)}</div>
+            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>{tUi('common.close', lang)}</span>
           </div>
-          <div className="cap">빠른 버튼을 찾을 수 없어요</div>
+          <div className="cap">{tUi('qa.notFound', lang)}</div>
         </div>
       </section>
     )
@@ -61,27 +61,27 @@ export default function QuickActionEditScreen({ active, quickActionId, onDone }:
 
   function save() {
     if (!titleKo.trim() && !titleEn.trim()) {
-      showToast('버튼 이름을 입력해주세요')
+      showToast(tUi('qa.nameRequired', lang))
       return
     }
     const num = amount === '' ? 0 : Number(amount)
     if (!Number.isFinite(num) || num <= 0) {
-      showToast('금액을 올바르게 입력해주세요')
+      showToast(tUi('qa.amountInvalid', lang))
       return
     }
     const input = { titleKo, titleEn, amountOriginal: num, currency, categoryId: catId, usedFor, paymentSourceId: paymentSourceId || undefined, memo, isActive }
     const ok = isNew ? addQuickAction(input) : updateQuickAction(quickActionId!, input)
     if (!ok) {
-      showToast('저장에 실패했어요')
+      showToast(tUi('toast.saveFailed', lang))
       return
     }
-    triggerSaved(isNew ? '추가됐어요' : '수정됐어요')
+    triggerSaved(isNew ? tUi('toast.added', lang) : tUi('toast.updated', lang))
     onDone()
   }
 
   function doDelete() {
     const ok = deleteQuickAction(quickActionId!)
-    showToast(ok ? '삭제됐어요' : '삭제에 실패했어요')
+    showToast(ok ? tUi('toast.deleted', lang) : tUi('toast.deleteFailed', lang))
     if (ok) onDone()
     else setConfirmDelete(false)
   }
@@ -90,22 +90,22 @@ export default function QuickActionEditScreen({ active, quickActionId, onDone }:
     <section className={'screen' + (active ? ' active' : '')} id="quickActionEdit">
       <div className="stack">
         <div className="between" style={{ padding: '0 4px' }}>
-          <div className="head" style={{ padding: 0 }}>{isNew ? '빠른 버튼 추가' : '빠른 버튼 수정'}</div>
-          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>닫기</span>
+          <div className="head" style={{ padding: 0 }}>{isNew ? tUi('qa.addTitle', lang) : tUi('qa.editTitle', lang)}</div>
+          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>{tUi('common.close', lang)}</span>
         </div>
 
         <div className="gl pod">
-          <div className="frow"><span>이름</span><input type="text" value={titleKo} placeholder="예: 점심" onChange={(e) => setTitleKo(e.target.value)} style={inputStyle} /></div>
+          <div className="frow"><span>{tUi('acc.name', lang)}</span><input type="text" value={titleKo} placeholder={lang === 'ko' ? '예: 점심' : 'e.g. Lunch'} onChange={(e) => setTitleKo(e.target.value)} style={inputStyle} /></div>
           <div className="frow"><span>English</span><input type="text" value={titleEn} placeholder="e.g. Lunch" onChange={(e) => setTitleEn(e.target.value)} style={inputStyle} /></div>
           <div className="between" style={{ marginTop: 6 }}>
-            <span className="label">통화</span>
+            <span className="label">{tUi('acc.currency', lang)}</span>
             <CurrencyToggle cur={currency} setCur={setCurrency} variant="text" />
           </div>
-          <div className="frow"><span>금액 ({currency})</span><input type="number" inputMode="numeric" min={0} value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} style={inputStyle} /></div>
+          <div className="frow"><span>{tUi('rec.amount', lang)} ({currency})</span><input type="number" inputMode="numeric" min={0} value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} style={inputStyle} /></div>
         </div>
 
         <div>
-          <div className="sect">사용대상</div>
+          <div className="sect">{tUi('add.forWhom', lang)}</div>
           <div className="seg3">
             {USED_FOR.map((v) => (
               <button key={v} className={usedFor === v ? 'sel ' + colorClass(v) : ''} onClick={() => setUsedFor(v)}>{tEnum('usedFor', v, lang)}</button>
@@ -114,7 +114,7 @@ export default function QuickActionEditScreen({ active, quickActionId, onDone }:
         </div>
 
         <div>
-          <div className="sect">카테고리</div>
+          <div className="sect">{tUi('add.category', lang)}</div>
           <div className="chips">
             {catOptions.map((c) => (
               <button key={c.id} className={'chip' + (catId === c.id ? ' sel' : '')} onClick={() => setCatId(c.id)}>{categoryLabel(c.id, db.categories, lang)}</button>
@@ -123,7 +123,7 @@ export default function QuickActionEditScreen({ active, quickActionId, onDone }:
         </div>
 
         <div>
-          <div className="sect">결제 통로</div>
+          <div className="sect">{tUi('add.paidWith', lang)}</div>
           <div className="chips">
             {psOptions.map((p) => (
               <button key={p.id} className={'chip' + (paymentSourceId === p.id ? ' sel' : '')} onClick={() => setPaymentSourceId(p.id)}>{paymentSourceTitle(p, lang)}</button>
@@ -132,26 +132,26 @@ export default function QuickActionEditScreen({ active, quickActionId, onDone }:
         </div>
 
         <div className="gl pod">
-          <div className="frow"><span>메모</span><input type="text" value={memo} placeholder="없음" onChange={(e) => setMemo(e.target.value)} style={inputStyle} /></div>
+          <div className="frow"><span>{tUi('add.memo', lang)}</span><input type="text" value={memo} placeholder={tUi('common.none', lang)} onChange={(e) => setMemo(e.target.value)} style={inputStyle} /></div>
           <div className="between" style={{ marginTop: 6 }}>
-            <span className="label">입력 화면에 표시</span>
+            <span className="label">{tUi('qa.showInAdd', lang)}</span>
             <div className="seg">
-              <button className={isActive ? 'on' : ''} onClick={() => setIsActive(true)}>표시</button>
-              <button className={!isActive ? 'on' : ''} onClick={() => setIsActive(false)}>숨김</button>
+              <button className={isActive ? 'on' : ''} onClick={() => setIsActive(true)}>{tUi('common.show', lang)}</button>
+              <button className={!isActive ? 'on' : ''} onClick={() => setIsActive(false)}>{tUi('common.hide', lang)}</button>
             </div>
           </div>
         </div>
 
-        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}><span>저장</span></button>
+        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}><span>{tUi('common.save', lang)}</span></button>
 
         {!isNew && (!confirmDelete ? (
-          <div className="cap" style={{ textAlign: 'center', cursor: 'pointer', color: '#cf743d' }} onClick={() => setConfirmDelete(true)}>이 빠른 버튼 삭제</div>
+          <div className="cap" style={{ textAlign: 'center', cursor: 'pointer', color: '#cf743d' }} onClick={() => setConfirmDelete(true)}>{tUi('qa.deleteOne', lang)}</div>
         ) : (
           <div className="gl pod" style={{ textAlign: 'center' }}>
-            <div className="label" style={{ marginBottom: 12 }}>이 빠른 버튼을 삭제할까요?</div>
+            <div className="label" style={{ marginBottom: 12 }}>{tUi('qa.confirmDelete', lang)}</div>
             <div className="seg3">
-              <button onClick={() => setConfirmDelete(false)}>취소</button>
-              <button className="sel ta" style={{ color: '#cf743d' }} onClick={doDelete}>삭제</button>
+              <button onClick={() => setConfirmDelete(false)}>{tUi('common.cancel', lang)}</button>
+              <button className="sel ta" style={{ color: '#cf743d' }} onClick={doDelete}>{tUi('common.delete', lang)}</button>
             </div>
           </div>
         ))}

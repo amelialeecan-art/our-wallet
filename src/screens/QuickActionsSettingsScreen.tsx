@@ -1,6 +1,6 @@
 import { useWallet } from '../store/WalletProvider.tsx'
 import { formatMoney } from '../domain/calculations.ts'
-import { categoryLabel, paymentSourceTitle, quickActionTitle, tEnum } from '../i18n/labels.ts'
+import { categoryLabel, paymentSourceTitle, quickActionTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { ScreenId } from '../types'
 
 interface Props {
@@ -19,10 +19,10 @@ export default function QuickActionsSettingsScreen({ active, onGo, onEdit }: Pro
     <section className={'screen' + (active ? ' active' : '')} id="quickActionsSettings">
       <div className="stack">
         <div className="between" style={{ padding: '0 4px' }}>
-          <div className="head" style={{ padding: 0 }}>빠른 버튼 관리</div>
-          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('settings')}>닫기</span>
+          <div className="head" style={{ padding: 0 }}>{tUi('qa.title', lang)}</div>
+          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('settings')}>{tUi('common.close', lang)}</span>
         </div>
-        <div className="cap" style={{ padding: '0 6px' }}>매일 3~5초 입력을 가능하게 하는 버튼이에요</div>
+        <div className="cap" style={{ padding: '0 6px' }}>{tUi('qa.note', lang)}</div>
 
         <div className="prows">
           {sorted.map((q, i) => {
@@ -37,7 +37,7 @@ export default function QuickActionsSettingsScreen({ active, onGo, onEdit }: Pro
             return (
               <div className="gl prow" key={q.id}>
                 <div className="grow" onClick={() => onEdit(q.id)}>
-                  <div className="aname">{quickActionTitle(q, lang)}{q.isActive === false && <span className="muted"> · 숨김</span>}</div>
+                  <div className="aname">{quickActionTitle(q, lang)}{q.isActive === false && <span className="muted"> · {tUi('common.hide', lang)}</span>}</div>
                   <div className="atype">{formatMoney(q.amountKrw, displayCurrency, fxRate)} · {sub}</div>
                 </div>
                 <div className="r" style={{ display: 'flex', flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -49,7 +49,7 @@ export default function QuickActionsSettingsScreen({ active, onGo, onEdit }: Pro
           })}
         </div>
 
-        <button className="btn block" style={{ padding: 15 }} onClick={() => onEdit(null)}><span>＋ 빠른 버튼 추가</span></button>
+        <button className="btn block" style={{ padding: 15 }} onClick={() => onEdit(null)}><span>{tUi('qa.add', lang)}</span></button>
       </div>
     </section>
   )

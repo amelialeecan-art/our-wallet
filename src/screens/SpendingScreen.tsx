@@ -14,18 +14,14 @@ import {
   colorClass,
   paymentSourceTitle,
   tEnum,
+  tUi,
 } from '../i18n/labels.ts'
 import type { Breakdown } from '../domain/calculations.ts'
+import type { Lang } from '../domain/types'
 
 type TabKey = 'who' | 'cat' | 'pay' | 'acc' | 'cur'
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'who', label: '사용대상별' },
-  { key: 'cat', label: '카테고리별' },
-  { key: 'pay', label: '결제수단별' },
-  { key: 'acc', label: '계좌별' },
-  { key: 'cur', label: '통화별' },
-]
+const TABS: TabKey[] = ['who', 'cat', 'pay', 'acc', 'cur']
 
 export default function SpendingScreen({ active }: { active: boolean }) {
   const ref = useRef<HTMLElement>(null)
@@ -74,16 +70,16 @@ export default function SpendingScreen({ active }: { active: boolean }) {
   return (
     <section ref={ref} className={'screen' + (active ? ' active' : '')} id="spending">
       <div className="stack">
-        <div className="head">누구를 위한 지출이었나요?</div>
+        <div className="head">{tUi('spending.title', lang)}</div>
         <div className="tabs" id="spendTabs">
           {TABS.map((t) => (
-            <button key={t.key} className={tab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>{t.label}</button>
+            <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{tUi('spending.tab.' + t, lang)}</button>
           ))}
         </div>
 
         <div className={'panel' + (tab === 'who' ? ' on' : '')}>
           <div className="gl pod">
-            <div className="sect" style={{ padding: 0, marginBottom: 14 }}>우리 지출의 사용대상</div>
+            <div className="sect" style={{ padding: 0, marginBottom: 14 }}>{tUi('spending.whoTitle', lang)}</div>
             <div className="liquid-wrap">
               <div className="liquid">
                 <div className="lq ta" data-h={hTa}></div>
@@ -101,8 +97,9 @@ export default function SpendingScreen({ active }: { active: boolean }) {
 
         <div className={'panel' + (tab === 'cat' ? ' on' : '')}>
           <div className="gl pod">
-            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>카테고리별</div>
+            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>{tUi('spending.catTitle', lang)}</div>
             <BreakdownList
+              lang={lang}
               rows={byCategory}
               labelOf={(b) => categoryLabel(b.key, db.categories, lang)}
             />
@@ -111,8 +108,9 @@ export default function SpendingScreen({ active }: { active: boolean }) {
 
         <div className={'panel' + (tab === 'pay' ? ' on' : '')}>
           <div className="gl pod">
-            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>우리 지출이 나간 통로</div>
+            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>{tUi('spending.payTitle', lang)}</div>
             <BreakdownList
+              lang={lang}
               rows={byPay}
               labelOf={(b) => { const ps = psById.get(b.key); return ps ? paymentSourceTitle(ps, lang) : b.key }}
               colorOf={(b) => { const ps = psById.get(b.key); return ps ? colorClass(ps.holder) : undefined }}
@@ -122,8 +120,9 @@ export default function SpendingScreen({ active }: { active: boolean }) {
 
         <div className={'panel' + (tab === 'acc' ? ' on' : '')}>
           <div className="gl pod">
-            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>계좌별</div>
+            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>{tUi('spending.accTitle', lang)}</div>
             <BreakdownList
+              lang={lang}
               rows={byAccount}
               labelOf={(b) => { const a = accById.get(b.key); return a ? accountTitle(a, lang) : b.key }}
               colorOf={(b) => { const a = accById.get(b.key); return a ? colorClass(a.holder) : undefined }}
@@ -133,8 +132,9 @@ export default function SpendingScreen({ active }: { active: boolean }) {
 
         <div className={'panel' + (tab === 'cur' ? ' on' : '')}>
           <div className="gl pod">
-            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>통화별</div>
+            <div className="sect" style={{ padding: 0, marginBottom: 6 }}>{tUi('spending.curTitle', lang)}</div>
             <BreakdownList
+              lang={lang}
               rows={byCurrency}
               labelOf={(b) => tEnum('currency', b.key, lang)}
               colorOf={(b) => (b.key === 'USD' ? 'ta' : undefined)}
@@ -150,12 +150,14 @@ function BreakdownList({
   rows,
   labelOf,
   colorOf,
+  lang,
 }: {
   rows: Breakdown[]
   labelOf: (b: Breakdown) => string
   colorOf?: (b: Breakdown) => 'us' | 'hy' | 'ta' | undefined
+  lang: Lang
 }) {
-  if (rows.length === 0) return <div className="cap">아직 지출 기록이 없어요</div>
+  if (rows.length === 0) return <div className="cap">{tUi('spending.empty', lang)}</div>
   return (
     <>
       {rows.map((b) => {

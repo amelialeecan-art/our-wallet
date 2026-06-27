@@ -5,7 +5,7 @@ import {
   getActiveMonth,
   getTransactionsForMonth,
 } from '../domain/calculations.ts'
-import { categoryLabel, colorClass, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
+import { categoryLabel, colorClass, formatDateLabel, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { ScreenId } from '../types'
 import type { Transaction, TransactionType } from '../domain/types'
 
@@ -39,16 +39,16 @@ export default function TransactionsScreen({ active, onGo, onEdit }: Props) {
     const recurringTag =
       t.sourceKind === 'recurring'
         ? t.type === 'income'
-          ? '반복수입'
+          ? tUi('tx.recurringIncome', lang)
           : t.type === 'transfer'
-            ? '저축 이체'
-            : '고정지출'
+            ? tUi('tx.savingsTransfer', lang)
+            : tUi('tx.fixedExpense', lang)
         : null
     const sub = [
       recurringTag ?? cat,
       ps ? paymentSourceTitle(ps, lang) : null,
       tEnum('recordedBy', t.recordedBy, lang),
-      t.date.slice(5),
+      formatDateLabel(t.date, lang),
     ]
       .filter(Boolean)
       .join(' · ')
@@ -74,18 +74,18 @@ export default function TransactionsScreen({ active, onGo, onEdit }: Props) {
     <section className={'screen' + (active ? ' active' : '')} id="transactions">
       <div className="stack">
         <div className="between" style={{ padding: '0 4px' }}>
-          <div className="head" style={{ padding: 0 }}>거래 내역</div>
-          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('home')}>닫기</span>
+          <div className="head" style={{ padding: 0 }}>{tUi('tx.title', lang)}</div>
+          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('home')}>{tUi('common.close', lang)}</span>
         </div>
 
         <div className="seg" style={{ alignSelf: 'flex-start' }}>
-          <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>전체</button>
-          <button className={filter === 'expense' ? 'on' : ''} onClick={() => setFilter('expense')}>지출</button>
-          <button className={filter === 'income' ? 'on' : ''} onClick={() => setFilter('income')}>수입</button>
+          <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>{tUi('tx.filterAll', lang)}</button>
+          <button className={filter === 'expense' ? 'on' : ''} onClick={() => setFilter('expense')}>{tUi('tx.filterExpense', lang)}</button>
+          <button className={filter === 'income' ? 'on' : ''} onClick={() => setFilter('income')}>{tUi('tx.filterIncome', lang)}</button>
         </div>
 
         <div className="prows">
-          {rows.length === 0 ? <div className="cap">아직 기록이 없어요</div> : rows.map(row)}
+          {rows.length === 0 ? <div className="cap">{tUi('tx.empty', lang)}</div> : rows.map(row)}
         </div>
       </div>
     </section>

@@ -21,8 +21,10 @@ import {
   categoryLabel,
   colorClass,
   paymentSourceTitle,
+  recurringDaysLabel,
   recurringTitle,
   tEnum,
+  tUi,
 } from '../i18n/labels.ts'
 import type { Currency, ScreenId } from '../types'
 
@@ -86,51 +88,51 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
       <div className="stack">
         <div className="between" style={{ padding: '0 4px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-            <b style={{ fontSize: 19, fontWeight: 800 }}>우리지갑</b>
-            <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>우리 돈은 하나</span>
+            <b style={{ fontSize: 19, fontWeight: 800 }}>{tUi('app.name', lang)}</b>
+            <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>{tUi('app.tagline', lang)}</span>
           </div>
           <CurrencyToggle cur={cur} setCur={setCur} variant="symbol" />
         </div>
 
         <div className="gl hero">
-          <div className="label">쓸 수 있는 돈</div>
+          <div className="label">{tUi('home.available', lang)}</div>
           <div className="big num">{formatMoney(heroDisplay, cur, fxRate)}</div>
-          <div className="cap">묶인 돈 {formatMoney(locked, cur, fxRate)} · $1 = ₩{fxRate.toLocaleString('ko-KR')}</div>
+          <div className="cap">{tUi('home.setAside', lang)} {formatMoney(locked, cur, fxRate)} · $1 = ₩{fxRate.toLocaleString('ko-KR')}</div>
         </div>
 
         <div className="gl pod" data-go="budget" onClick={() => onGo('budget')}>
           <div className="between" style={{ marginBottom: 13 }}>
             <div>
-              <div className="label">이번 달 우리 지출</div>
+              <div className="label">{tUi('home.spendingThisMonth', lang)}</div>
               <div className="num" style={{ fontSize: 27, fontWeight: 800, marginTop: 3 }}>{formatMoney(monthlyExpense, cur, fxRate)}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div className="label">남은 예산</div>
+              <div className="label">{tUi('home.budgetLeft', lang)}</div>
               <div className="num" style={{ fontSize: 17, fontWeight: 800, color: 'var(--aqua-d)', marginTop: 3 }}>{formatMoney(remaining, cur, fxRate)}</div>
             </div>
           </div>
           <div className="track"><div className={'fill' + (usagePct > 100 ? ' over' : '')} data-w={Math.min(100, usagePct)}></div></div>
-          <div className="cap">예산 {formatMoney(budgetTotal, cur, fxRate)} 중 {usagePct}% 사용</div>
+          <div className="cap">{tUi('home.budget', lang)} {formatMoney(budgetTotal, cur, fxRate)} · {usagePct}% {tUi('home.used', lang)}</div>
         </div>
 
         <div className="gl pod">
-          <div className="label">이번 달 예상으로 남길 수 있는 돈</div>
+          <div className="label">{tUi('home.expectedLeft', lang)}</div>
           <div className="num" style={{ fontSize: 24, fontWeight: 800, marginTop: 3 }}>{formatMoney(outlook.maxSavings, cur, fxRate)}</div>
           <div className="between" style={{ marginTop: 12 }}>
             <div>
-              <div className="label">아직 반영 안 된 수입</div>
+              <div className="label">{tUi('home.pendingIncome', lang)}</div>
               <div className="num" style={{ fontWeight: 800, color: 'var(--aqua-d)', marginTop: 3 }}>+{formatMoney(outlook.pendingIncome, cur, fxRate)}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div className="label">아직 나갈 예정인 돈</div>
+              <div className="label">{tUi('home.pendingExpense', lang)}</div>
               <div className="num" style={{ fontWeight: 800, color: '#cf743d', marginTop: 3 }}>−{formatMoney(outlook.pendingExpense, cur, fxRate)}</div>
             </div>
           </div>
-          {outlook.pendingSavingTransfer > 0 && <div className="cap">예정 저축 이체 {formatMoney(outlook.pendingSavingTransfer, cur, fxRate)}</div>}
+          {outlook.pendingSavingTransfer > 0 && <div className="cap">{tUi('home.pendingTransfer', lang)} {formatMoney(outlook.pendingSavingTransfer, cur, fxRate)}</div>}
         </div>
 
         <div>
-          <div className="sect">우리 돈이 있는 곳</div>
+          <div className="sect">{tUi('home.whereMoney', lang)}</div>
           <div className="prows">
             {spendableAccounts.map((a) => (
               <div className="gl prow" key={a.id}>
@@ -145,8 +147,8 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
             <div className="gl prow held" data-go="assets" onClick={() => onGo('assets')}>
               <span className="dot" style={{ background: '#aec8d0' }}></span>
               <div className="grow">
-                <div className="aname">모으는·불리는 돈</div>
-                <div className="atype">{lang === 'ko' ? '적금 · 투자' : 'Savings · Invest'}</div>
+                <div className="aname">{tUi('home.savingMoney', lang)}</div>
+                <div className="atype">{tUi('home.savingsInvest', lang)}</div>
               </div>
               <div className="aval num">{formatMoney(locked, cur, fxRate)}</div>
             </div>
@@ -155,16 +157,16 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
 
         <div>
           <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
-            <div className="sect" style={{ margin: 0, padding: 0 }}>오늘 예정</div>
-            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('schedule')}>일정 보기</span>
+            <div className="sect" style={{ margin: 0, padding: 0 }}>{tUi('home.upcoming', lang)}</div>
+            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('schedule')}>{tUi('home.viewSchedule', lang)}</span>
           </div>
           <div className="hscroll">
-            {pending.length === 0 && <div className="cap">이번 달 예정 항목을 모두 반영했어요</div>}
+            {pending.length === 0 && <div className="cap">{tUi('home.allApplied', lang)}</div>}
             {pending.map((r) => {
               const sign = r.type === 'income' ? '+' : r.type === 'transfer' ? '→' : '−'
               return (
                 <div className="gl due" key={r.id} onClick={() => onGo('schedule')}>
-                  <div className="wh">{lang === 'ko' ? `매월 ${r.daysOfMonth.join('·')}일` : `Monthly ${r.daysOfMonth.join(', ')}`}</div>
+                  <div className="wh">{recurringDaysLabel(r.daysOfMonth, lang)}</div>
                   <div className="nm">{recurringTitle(r, lang)}</div>
                   <div className={'m num ' + (r.type === 'income' ? 'm-in' : 'm-out')}>{sign}{formatMoney(r.amountKrw, cur, fxRate)}</div>
                 </div>
@@ -175,11 +177,11 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
 
         <div>
           <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
-            <div className="sect" style={{ margin: 0, padding: 0 }}>최근 우리 지출</div>
-            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('transactions')}>전체 보기</span>
+            <div className="sect" style={{ margin: 0, padding: 0 }}>{tUi('home.recent', lang)}</div>
+            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('transactions')}>{tUi('home.viewAll', lang)}</span>
           </div>
           <div className="prows">
-            {recent.length === 0 && <div className="cap">아직 기록이 없어요</div>}
+            {recent.length === 0 && <div className="cap">{tUi('home.noRecords', lang)}</div>}
             {recent.map((t) => {
               const ps = psById.get(t.paymentSourceId)
               const cls = colorClass(t.usedFor)

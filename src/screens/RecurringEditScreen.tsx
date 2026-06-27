@@ -2,7 +2,7 @@ import { useState } from 'react'
 import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
-import { accountTitle, categoryLabel, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
+import { accountTitle, categoryLabel, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { Currency } from '../types'
 import type { RecurringType } from '../domain/types'
 
@@ -51,10 +51,10 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
       <section className={'screen' + (active ? ' active' : '')} id="recurringEdit">
         <div className="stack">
           <div className="between" style={{ padding: '0 4px' }}>
-            <div className="head" style={{ padding: 0 }}>반복 항목 수정</div>
-            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>닫기</span>
+            <div className="head" style={{ padding: 0 }}>{tUi('rec.editTitle', lang)}</div>
+            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>{tUi('common.close', lang)}</span>
           </div>
-          <div className="cap">항목을 찾을 수 없어요</div>
+          <div className="cap">{tUi('rec.notFound', lang)}</div>
         </div>
       </section>
     )
@@ -62,17 +62,17 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
 
   function save() {
     if (!titleKo.trim() && !titleEn.trim()) {
-      showToast('이름을 입력해주세요')
+      showToast(tUi('rec.nameRequired', lang))
       return
     }
     const num = amount === '' ? 0 : Number(amount)
     if (!Number.isFinite(num) || num <= 0) {
-      showToast('금액을 올바르게 입력해주세요')
+      showToast(tUi('rec.amountInvalid', lang))
       return
     }
     const daysArr = days.split(/[^\d]+/).filter(Boolean).map(Number)
     if (!daysArr.some((d) => d >= 1 && d <= 31)) {
-      showToast('반복일을 1~31 사이로 입력해주세요')
+      showToast(tUi('rec.daysInvalid', lang))
       return
     }
     const input = {
@@ -89,18 +89,18 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
     }
     const ok = isNew ? addRecurringItem(input) : updateRecurringItem(recurringId!, input)
     if (!ok) {
-      showToast('저장에 실패했어요')
+      showToast(tUi('toast.saveFailed', lang))
       return
     }
-    triggerSaved(isNew ? '추가됐어요' : '수정됐어요')
+    triggerSaved(isNew ? tUi('toast.added', lang) : tUi('toast.updated', lang))
     onDone()
   }
 
   function doDelete() {
     const res = deleteRecurringItem(recurringId!)
-    if (res === 'deleted') showToast('삭제됐어요')
-    else if (res === 'hidden') showToast('반영된 적 있어 숨김 처리했어요')
-    else showToast('삭제에 실패했어요')
+    if (res === 'deleted') showToast(tUi('toast.deleted', lang))
+    else if (res === 'hidden') showToast(tUi('rec.hidden', lang))
+    else showToast(tUi('toast.deleteFailed', lang))
     if (res === 'deleted' || res === 'hidden') onDone()
     else setConfirmDelete(false)
   }
@@ -109,12 +109,12 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
     <section className={'screen' + (active ? ' active' : '')} id="recurringEdit">
       <div className="stack">
         <div className="between" style={{ padding: '0 4px' }}>
-          <div className="head" style={{ padding: 0 }}>{isNew ? '반복 항목 추가' : '반복 항목 수정'}</div>
-          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>닫기</span>
+          <div className="head" style={{ padding: 0 }}>{isNew ? tUi('rec.addTitle', lang) : tUi('rec.editTitle', lang)}</div>
+          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={onDone}>{tUi('common.close', lang)}</span>
         </div>
 
         <div>
-          <div className="sect">종류</div>
+          <div className="sect">{tUi('rec.kind', lang)}</div>
           <div className="seg3">
             {TYPES.map((t) => (
               <button key={t} className={type === t ? (t === 'income' ? 'sel us' : t === 'transfer' ? 'sel hy' : 'sel ta') : ''} onClick={() => setType(t)}>{tEnum('recurringType', t, lang)}</button>
@@ -123,20 +123,20 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
         </div>
 
         <div className="gl pod">
-          <div className="frow"><span>이름</span><input type="text" value={titleKo} placeholder="예: 월세" onChange={(e) => setTitleKo(e.target.value)} style={inputStyle} /></div>
+          <div className="frow"><span>{tUi('rec.name', lang)}</span><input type="text" value={titleKo} placeholder={lang === 'ko' ? '예: 월세' : 'e.g. Rent'} onChange={(e) => setTitleKo(e.target.value)} style={inputStyle} /></div>
           <div className="frow"><span>English</span><input type="text" value={titleEn} placeholder="e.g. Rent" onChange={(e) => setTitleEn(e.target.value)} style={inputStyle} /></div>
           <div className="between" style={{ marginTop: 6 }}>
-            <span className="label">통화</span>
+            <span className="label">{tUi('acc.currency', lang)}</span>
             <CurrencyToggle cur={currency} setCur={setCurrency} variant="text" />
           </div>
-          <div className="frow"><span>금액 ({currency})</span><input type="number" inputMode="numeric" min={0} value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} style={inputStyle} /></div>
-          <div className="frow"><span>매월 며칠 (예: 1, 15)</span><input type="text" inputMode="numeric" value={days} placeholder="25" onChange={(e) => setDays(e.target.value)} style={inputStyle} /></div>
+          <div className="frow"><span>{tUi('rec.amount', lang)} ({currency})</span><input type="number" inputMode="numeric" min={0} value={amount} placeholder="0" onChange={(e) => setAmount(e.target.value)} style={inputStyle} /></div>
+          <div className="frow"><span>{tUi('rec.days', lang)}</span><input type="text" inputMode="numeric" value={days} placeholder="25" onChange={(e) => setDays(e.target.value)} style={inputStyle} /></div>
         </div>
 
         <div>
-          <div className="sect">카테고리 {type === 'expense' ? '' : '(선택)'}</div>
+          <div className="sect">{tUi('rec.category', lang)} {type === 'expense' ? '' : tUi('common.optional', lang)}</div>
           <div className="chips">
-            <button className={'chip' + (categoryId === '' ? ' sel' : '')} onClick={() => setCategoryId('')}>없음</button>
+            <button className={'chip' + (categoryId === '' ? ' sel' : '')} onClick={() => setCategoryId('')}>{tUi('common.none', lang)}</button>
             {catOptions.map((c) => (
               <button key={c.id} className={'chip' + (categoryId === c.id ? ' sel' : '')} onClick={() => setCategoryId(c.id)}>{categoryLabel(c.id, db.categories, lang)}</button>
             ))}
@@ -144,9 +144,9 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
         </div>
 
         <div>
-          <div className="sect">결제 통로 (선택)</div>
+          <div className="sect">{tUi('rec.payment', lang)} {tUi('common.optional', lang)}</div>
           <div className="chips">
-            <button className={'chip' + (paymentSourceId === '' ? ' sel' : '')} onClick={() => setPaymentSourceId('')}>없음</button>
+            <button className={'chip' + (paymentSourceId === '' ? ' sel' : '')} onClick={() => setPaymentSourceId('')}>{tUi('common.none', lang)}</button>
             {psOptions.map((p) => (
               <button key={p.id} className={'chip' + (paymentSourceId === p.id ? ' sel' : '')} onClick={() => setPaymentSourceId(p.id)}>{paymentSourceTitle(p, lang)}</button>
             ))}
@@ -154,9 +154,9 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
         </div>
 
         <div>
-          <div className="sect">입금·보관 계좌 (선택)</div>
+          <div className="sect">{tUi('rec.account', lang)} {tUi('common.optional', lang)}</div>
           <div className="chips">
-            <button className={'chip' + (accountId === '' ? ' sel' : '')} onClick={() => setAccountId('')}>없음</button>
+            <button className={'chip' + (accountId === '' ? ' sel' : '')} onClick={() => setAccountId('')}>{tUi('common.none', lang)}</button>
             {db.accounts.map((a) => (
               <button key={a.id} className={'chip' + (accountId === a.id ? ' sel' : '')} onClick={() => setAccountId(a.id)}>{accountTitle(a, lang)}</button>
             ))}
@@ -165,24 +165,24 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
 
         <div className="gl pod">
           <div className="between">
-            <span className="label">일정에 표시</span>
+            <span className="label">{tUi('rec.showInSchedule', lang)}</span>
             <div className="seg">
-              <button className={isActive ? 'on' : ''} onClick={() => setIsActive(true)}>표시</button>
-              <button className={!isActive ? 'on' : ''} onClick={() => setIsActive(false)}>숨김</button>
+              <button className={isActive ? 'on' : ''} onClick={() => setIsActive(true)}>{tUi('common.show', lang)}</button>
+              <button className={!isActive ? 'on' : ''} onClick={() => setIsActive(false)}>{tUi('common.hide', lang)}</button>
             </div>
           </div>
         </div>
 
-        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}><span>저장</span></button>
+        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}><span>{tUi('common.save', lang)}</span></button>
 
         {!isNew && (!confirmDelete ? (
-          <div className="cap" style={{ textAlign: 'center', cursor: 'pointer', color: '#cf743d' }} onClick={() => setConfirmDelete(true)}>이 항목 삭제</div>
+          <div className="cap" style={{ textAlign: 'center', cursor: 'pointer', color: '#cf743d' }} onClick={() => setConfirmDelete(true)}>{tUi('rec.deleteOne', lang)}</div>
         ) : (
           <div className="gl pod" style={{ textAlign: 'center' }}>
-            <div className="label" style={{ marginBottom: 12 }}>이 항목을 삭제할까요? (반영된 적 있으면 숨김 처리돼요)</div>
+            <div className="label" style={{ marginBottom: 12 }}>{tUi('rec.confirmDelete', lang)}</div>
             <div className="seg3">
-              <button onClick={() => setConfirmDelete(false)}>취소</button>
-              <button className="sel ta" style={{ color: '#cf743d' }} onClick={doDelete}>삭제</button>
+              <button onClick={() => setConfirmDelete(false)}>{tUi('common.cancel', lang)}</button>
+              <button className="sel ta" style={{ color: '#cf743d' }} onClick={doDelete}>{tUi('common.delete', lang)}</button>
             </div>
           </div>
         ))}

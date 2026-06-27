@@ -1,5 +1,5 @@
 import { useWallet } from '../store/WalletProvider.tsx'
-import { accountTitle, colorClass, paymentSourceTitle, tEnum } from '../i18n/labels.ts'
+import { accountTitle, colorClass, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { ScreenId } from '../types'
 
 interface Props {
@@ -16,10 +16,10 @@ export default function PaymentSourcesSettingsScreen({ active, onGo, onEdit }: P
     <section className={'screen' + (active ? ' active' : '')} id="paymentSourcesSettings">
       <div className="stack">
         <div className="between" style={{ padding: '0 4px' }}>
-          <div className="head" style={{ padding: 0 }}>카드 · 결제통로 관리</div>
-          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('settings')}>닫기</span>
+          <div className="head" style={{ padding: 0 }}>{tUi('pay.title', lang)}</div>
+          <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('settings')}>{tUi('common.close', lang)}</span>
         </div>
-        <div className="cap" style={{ padding: '0 6px' }}>결제통로는 우리 돈이 나가는 길이에요</div>
+        <div className="cap" style={{ padding: '0 6px' }}>{tUi('pay.note', lang)}</div>
 
         <div className="prows">
           {db.paymentSources.map((p) => {
@@ -31,7 +31,7 @@ export default function PaymentSourcesSettingsScreen({ active, onGo, onEdit }: P
               <div className="gl prow" key={p.id} onClick={() => onEdit(p.id)}>
                 <span className={'dot ' + colorClass(p.holder)}></span>
                 <div className="grow">
-                  <div className="aname">{paymentSourceTitle(p, lang)}{p.isActive === false && <span className="muted"> · 숨김</span>}</div>
+                  <div className="aname">{paymentSourceTitle(p, lang)}{p.isActive === false && <span className="muted"> · {tUi('common.hide', lang)}</span>}</div>
                   <div className="atype">{sub}</div>
                 </div>
                 <span className="chev">›</span>
@@ -40,7 +40,7 @@ export default function PaymentSourcesSettingsScreen({ active, onGo, onEdit }: P
           })}
         </div>
 
-        <button className="btn block" style={{ padding: 15 }} onClick={() => onEdit(null)}><span>＋ 결제통로 추가</span></button>
+        <button className="btn block" style={{ padding: 15 }} onClick={() => onEdit(null)}><span>{tUi('pay.add', lang)}</span></button>
       </div>
     </section>
   )

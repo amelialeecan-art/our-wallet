@@ -3,7 +3,7 @@ import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
 import { formatMoney } from '../domain/calculations.ts'
-import { categoryLabel, colorClass, paymentSourceTitle, quickActionTitle, tEnum } from '../i18n/labels.ts'
+import { categoryLabel, colorClass, paymentSourceTitle, quickActionTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { Currency } from '../types'
 import type { UsedFor } from '../domain/types'
 
@@ -75,7 +75,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
 
   function save() {
     if (n <= 0) {
-      showToast(lang === 'en' ? 'Enter an amount' : '금액을 입력해주세요')
+      showToast(tUi('toast.enterAmount', lang))
       return
     }
     const ok = addTransaction({
@@ -87,27 +87,27 @@ export default function AddScreen({ active, cur, setCur }: Props) {
       memo,
     })
     if (!ok) {
-      showToast(lang === 'en' ? "Couldn't save" : '저장에 실패했어요')
+      showToast(tUi('toast.saveFailed', lang))
       return
     }
-    triggerSaved(lang === 'en' ? 'Saved' : '저장됐어요')
+    triggerSaved(tUi('toast.saved', lang))
     resetInputs()
   }
 
   return (
     <section className={'screen' + (active ? ' active' : '')} id="add">
       <div className="stack">
-        <div className="head">빠른 입력</div>
+        <div className="head">{tUi('add.title', lang)}</div>
         <div className="gl pod">
           <div className="between" style={{ marginBottom: 2 }}>
-            <span className="label">금액</span>
+            <span className="label">{tUi('add.amount', lang)}</span>
             <CurrencyToggle cur={cur} setCur={setCur} variant="text" />
           </div>
           <div className={'amount' + (n === 0 ? ' empty' : '')} onClick={() => setKeypadOpen((o) => !o)}>
             <span className="cur">{amtCur}</span>
             <span className="val num">{amtVal}</span>
           </div>
-          <div className="hint">금액을 눌러 직접 입력</div>
+          <div className="hint">{tUi('add.tapToEnter', lang)}</div>
           <div className={'keypad' + (keypadOpen ? '' : ' hidden')}>
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
               <button key={d} onClick={() => pressKey(d)}>{d}</button>
@@ -119,7 +119,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         </div>
 
         <div>
-          <div className="sect">사용대상</div>
+          <div className="sect">{tUi('add.forWhom', lang)}</div>
           <div className="seg3" id="who">
             {USED_FOR.map((v) => (
               <button key={v} className={usedFor === v ? 'sel ' + colorClass(v) : ''} onClick={() => setUsedFor(v)}>
@@ -130,7 +130,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         </div>
 
         <div>
-          <div className="sect">자주 쓰는 항목</div>
+          <div className="sect">{tUi('add.frequent', lang)}</div>
           <div className="quick">
             {activeQuickActions.map((q) => (
               <button key={q.id} className="gl qbtn" onClick={() => pickQuick(q)}>
@@ -142,7 +142,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         </div>
 
         <div>
-          <div className="sect">카테고리</div>
+          <div className="sect">{tUi('add.category', lang)}</div>
           <div className="chips">
             {activeCategories.map((c) => (
               <button key={c.id} className={'chip' + (catId === c.id ? ' sel' : '')} onClick={() => setCatId(c.id)}>
@@ -153,10 +153,10 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         </div>
 
         <details className="gl details">
-          <summary><span>자세히 입력하기</span><span className="muted">＋</span></summary>
+          <summary><span>{tUi('add.moreDetails', lang)}</span><span className="muted">＋</span></summary>
           <div className="body">
             <div className="frow" style={{ display: 'block' }}>
-              <span>결제 통로</span>
+              <span>{tUi('add.paidWith', lang)}</span>
               <div className="chips" style={{ marginTop: 10 }}>
                 {db.paymentSources.filter((p) => p.isActive !== false).map((p) => (
                   <button key={p.id} className={'chip' + (paymentSourceId === p.id ? ' sel' : '')} onClick={() => setPaymentSourceId(p.id)}>
@@ -165,13 +165,13 @@ export default function AddScreen({ active, cur, setCur }: Props) {
                 ))}
               </div>
             </div>
-            <div className="frow"><span>날짜</span><span className="fv">오늘</span></div>
-            <div className="frow"><span>메모</span><span className={'fv' + (memo ? '' : ' muted')}>{memo || '없음'}</span></div>
+            <div className="frow"><span>{tUi('add.date', lang)}</span><span className="fv">{tUi('common.today', lang)}</span></div>
+            <div className="frow"><span>{tUi('add.memo', lang)}</span><span className={'fv' + (memo ? '' : ' muted')}>{memo || tUi('common.none', lang)}</span></div>
           </div>
         </details>
 
         <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}>
-          <span>저장</span>
+          <span>{tUi('common.save', lang)}</span>
         </button>
       </div>
     </section>
