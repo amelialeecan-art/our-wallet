@@ -357,6 +357,11 @@ const UI: Group = {
   'data.restored': { ko: '복원됐어요', en: 'Restored' },
   'data.restoreFailed': { ko: '복원에 실패했어요', en: "Couldn't restore" },
   'data.resetDone': { ko: '초기화됐어요', en: 'Reset done' },
+  // 앱 설치 안내
+  'install.title': { ko: '앱처럼 설치하기', en: 'Install like an app' },
+  'install.note': { ko: '휴대폰 홈 화면에 추가하면 앱처럼 사용할 수 있어요.', en: 'Add to your home screen to use it like an app.' },
+  'install.ios': { ko: 'iPhone Safari: 공유 버튼 → ‘홈 화면에 추가’', en: 'iPhone Safari: Share → "Add to Home Screen"' },
+  'install.android': { ko: 'Android Chrome: 메뉴 → ‘앱 설치’ 또는 ‘홈 화면에 추가’', en: 'Android Chrome: Menu → "Install app" / "Add to Home screen"' },
 }
 
 export function tEnum(group: keyof typeof ENUMS | string, key: string, lang: Lang): string {

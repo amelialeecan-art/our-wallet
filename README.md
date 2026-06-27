@@ -20,45 +20,72 @@
 
 ## 기술 스택
 
-- React 18 + Vite
+- React 18 + Vite + TypeScript
 - localStorage 영속화 (최종 목표: Firebase Firestore 실시간 동기화)
 - 고정환율 **1 USD = 1,500 KRW** (자동 환율 API 미사용)
+- PWA (오프라인 앱 껍데기 + 홈 화면 설치)
 
-## 실행
+## 로컬 실행 / 빌드
 
 ```bash
 npm install
-npm run dev      # 개발 서버 (http://localhost:5173)
-npm run build    # 프로덕션 빌드
+npm run dev      # 개발 서버 (http://localhost:5173, base '/')
+npm run build    # 프로덕션 빌드 (base '/our-wallet/')
 npm run preview  # 빌드 결과 미리보기
 ```
+
+## GitHub Pages 배포
+
+이 저장소는 `main` 브랜치에 push하면 GitHub Actions가 자동으로 빌드·배포한다.
+
+**최초 1회 설정 (필수):**
+1. GitHub 저장소 → **Settings → Pages**
+2. **Build and deployment → Source** 를 **GitHub Actions** 로 변경
+3. `main` 브랜치에 push (또는 Actions 탭에서 `Deploy to GitHub Pages` 수동 실행)
+
+배포 URL: `https://amelialeecan-art.github.io/our-wallet/`
+
+- Vite `base` 는 빌드 시 `/our-wallet/` 로 설정됨 (`vite.config.js`)
+- 커스텀 도메인을 쓸 경우 `base` 를 `/` 로 바꾸고 manifest 경로를 확인할 것
+
+## PWA 설치 방법
+
+- **iPhone (Safari):** 공유 버튼 → "홈 화면에 추가"
+- **Android (Chrome):** 메뉴 → "앱 설치" 또는 "홈 화면에 추가"
+
+설치하면 주소창 없이 앱처럼 실행되고, 한 번 연 뒤에는 오프라인에서도 열린다.
+(설정 → 데이터 화면에도 같은 안내가 있다.)
+
+## 데이터 보관 & 백업 (중요)
+
+- 현재 모든 데이터는 **이 기기의 브라우저 localStorage** 에만 저장된다.
+- **휴대폰 변경 / 브라우저 캐시 삭제 전에는 반드시 백업**하세요.
+  - 설정 → 백업·복원·초기화 → "백업 파일 저장 (JSON)"
+- 서비스워커는 **앱 껍데기 로딩용**일 뿐, 데이터 동기화가 아니다.
+- Firebase 실시간 동기화(비밀 링크로 둘이 공유)는 **다음 단계 예정**.
 
 ## 폴더 구조
 
 ```
 src/
-├── main.jsx, App.jsx
+├── main.tsx, App.tsx
 ├── styles/global.css          # 글래스/물방울 디자인 시스템 (프로토타입 보존)
 ├── components/                # PhoneFrame, TabBar, CurrencyToggle 등 공용 UI
-├── screens/                   # Home / Add / Assets / Spending / Budget / Schedule / Settings
-└── lib/                       # money(통화), feedback(저장 피드백), 애니메이션 훅
+├── screens/                   # Home / Add / Assets / Spending / Budget / Schedule / Settings + 관리 화면
+├── domain/                    # 타입·계산·seed·마이그레이션·백업
+├── store/                     # WalletProvider (Context + localStorage)
+├── storage/                   # adapter + repository
+└── i18n/                      # 한/영 라벨 사전
+public/
+├── manifest.webmanifest       # PWA manifest
+├── sw.js                      # 서비스워커 (오프라인 앱 껍데기)
+└── icon-*.png                 # PWA 아이콘 (192/512/maskable/apple-touch)
 ```
 
-## 개발 단계
-
-- [x] **0단계** — 프로토타입 디자인을 React 구조로 분리. 6화면 + 탭바 + 물방울 인터랙션 이식 (정적 UI)
-- [ ] 1단계 — 데이터 모델 + localStorage + Context, 역할(현수/태너) 선택
-- [ ] 2단계 — 한/영 전환 + KRW/USD 변환 (원본+환산 동시 보존)
-- [ ] 3단계 — Home·Assets 실데이터 연결
-- [ ] 4단계 — 빠른 입력 실동작 (3~5초 저장)
-- [ ] 5단계 — 지출 분석 5종 (사용대상/카테고리/결제수단/계좌/통화)
-- [ ] 6단계 — 예산 사용률 + 월급일·고정지출
-- [ ] 7단계 — 설정 관리(계좌/카드/카테고리/사용대상/빠른버튼) + 삭제 확인 절차
-- [ ] 8단계 — 비밀 링크 공유 + Firebase Firestore 실시간 동기화
-
-### 개발 원칙
+## 개발 원칙
 - 한 번에 다 만들지 않고 단계별로. 각 단계는 항상 동작 가능한 상태.
 - 디자인 변경 최소화. 안정성·직관성·데이터 누락 방지 우선.
 - 모든 금액은 원본 통화와 환산 금액을 모두 보존.
 - 삭제·초기화는 확인 절차 필수.
 - 계좌번호·주민번호 등 민감정보는 저장하지 않는다.
+- 저장 key는 영문 enum/id, 화면 라벨만 i18n으로 표시.

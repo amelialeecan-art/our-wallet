@@ -87,6 +87,16 @@ export default function DataSettingsScreen({ active, onGo }: Props) {
           <div className="cap">{tUi('data.info3', lang)}</div>
         </div>
 
+        {/* 앱 설치 안내 */}
+        <div>
+          <div className="sect">{tUi('install.title', lang)}</div>
+          <div className="gl pod">
+            <div className="cap" style={{ marginTop: 0 }}>{tUi('install.note', lang)}</div>
+            <div className="cap">{tUi('install.ios', lang)}</div>
+            <div className="cap">{tUi('install.android', lang)}</div>
+          </div>
+        </div>
+
         {/* 백업 */}
         <div>
           <div className="sect">{tUi('data.backup', lang)}</div>
