@@ -640,7 +640,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         return false
       }
     }
-    // seed로 초기화 (기기 역할/표시설정은 유지)
+    // seed(빈 지갑)로 초기화 (기기 역할/표시설정은 유지)
     function resetDatabaseToSeed(): void {
       setDb(resetDb())
     }

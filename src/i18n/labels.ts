@@ -378,7 +378,7 @@ const UI: Group = {
   'data.restoreConfirm': { ko: '현재 데이터가 백업 파일 내용으로 바뀝니다. 계속할까요?', en: 'This replaces your current data with the backup. Continue?' },
   'data.restoreBtn': { ko: '복원', en: 'Restore' },
   'data.reset': { ko: '초기화', en: 'Reset' },
-  'data.resetNote': { ko: '모든 데이터가 처음(예시) 상태로 돌아갑니다. 역할 설정은 유지돼요.', en: 'All data returns to the starter state. Your role stays.' },
+  'data.resetNote': { ko: '모든 데이터가 처음 빈 지갑 상태로 돌아갑니다. 역할 설정은 유지돼요.', en: 'All data returns to the empty starter wallet. Your role stays.' },
   'data.resetStart': { ko: '처음 상태로 초기화', en: 'Reset to starter data' },
   'data.resetConfirm1': { ko: '정말 초기화할까요? 되돌릴 수 없어요.', en: 'Are you sure you want to reset? This cannot be undone.' },
   'data.resetContinue': { ko: '계속', en: 'Continue' },
