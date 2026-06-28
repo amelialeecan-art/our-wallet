@@ -322,7 +322,7 @@ const UI: Group = {
   'cat.addTitle': { ko: '카테고리 추가', en: 'Add category' },
   'cat.editTitle': { ko: '카테고리 수정', en: 'Edit category' },
   'cat.notFound': { ko: '카테고리를 찾을 수 없어요', en: 'Category not found' },
-  'cat.budget': { ko: '월 예산 (₩, 선택)', en: 'Monthly budget (₩, optional)' },
+  'cat.budget': { ko: '월 예산 (선택)', en: 'Monthly budget (optional)' },
   'cat.budgetNone': { ko: '예산 없음', en: 'No budget' },
   'cat.budgetPrefix': { ko: '예산', en: 'Budget' },
   'cat.showInAdd': { ko: '입력 목록에 표시', en: 'Show in quick add' },

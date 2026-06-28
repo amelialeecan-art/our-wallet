@@ -90,7 +90,7 @@ export default function BudgetScreen({ active }: { active: boolean }) {
               <div className="fillrow" key={c.categoryId}>
                 <div className="fillhead">
                   <span>{categoryLabel(c.categoryId, db.categories, lang)} {over && <span className="tagover">{tUi('budget.over', lang)}</span>}</span>
-                  <span className="pct">{pct}%</span>
+                  <span className="pct">{formatMoney(c.usedKrw, displayCurrency, fxRate)} · {pct}%</span>
                 </div>
                 <div className="track"><div className={'fill' + (over ? ' over' : '')} data-w={Math.min(100, pct)}></div></div>
               </div>
