@@ -203,6 +203,7 @@ export interface AppSettings {
   defaultCurrency: Currency // 입력 기본 통화
   fxRate: number // 고정환율 (1 USD = fxRate KRW)
   personDefaults: Record<Role, PersonDefaults>
+  monthlyBudgetKrw?: number // 이번 달 총예산(원화 환산). 0/미설정이면 예산 없음
 }
 
 // ----- 가구 공용 데이터베이스 (localStorage / 향후 Firebase에 저장될 단위) -----
