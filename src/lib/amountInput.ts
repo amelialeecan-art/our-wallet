@@ -40,6 +40,20 @@ function cap(s: string): string {
   return s.replace('.', '').length > 9 ? s.slice(0, -1) : s
 }
 
+// <input>에 들어온 자유 입력을 통화 규칙에 맞게 정리 (KRW=정수, USD=소수 2자리)
+export function sanitizeAmountInput(value: string, currency: Currency): string {
+  if (currency === 'KRW') {
+    return value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '').slice(0, 12)
+  }
+  let s = value.replace(/[^\d.]/g, '')
+  const firstDot = s.indexOf('.')
+  if (firstDot >= 0) s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '')
+  const [intPart, decPart] = s.split('.')
+  const cleanInt = intPart.replace(/^0+(?=\d)/, '')
+  s = decPart !== undefined ? `${cleanInt}.${decPart.slice(0, 2)}` : cleanInt
+  return s.slice(0, 12)
+}
+
 // 통화 전환 시 입력값 환산 (고정환율). KRW1500 ↔ USD1
 export function convertRaw(raw: string, from: Currency, to: Currency, fxRate: number): string {
   if (from === to) return raw
