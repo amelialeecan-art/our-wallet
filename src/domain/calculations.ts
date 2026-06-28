@@ -5,7 +5,6 @@
 
 import type {
   Account,
-  Budget,
   Category,
   Currency,
   HolderLabel,
@@ -90,14 +89,7 @@ export function getEstimatedMaxSavings(
 }
 
 // ---------- 4. 예산 계산 ----------
-
-export function getBudgetForMonth(budgets: Budget[], month: string): Budget | undefined {
-  return budgets.find((b) => b.month === month)
-}
-
-export function getBudgetTotal(budgets: Budget[], month: string): number {
-  return getBudgetForMonth(budgets, month)?.totalKrw ?? 0
-}
+// 총예산은 settings.monthlyBudgetKrw(원화 환산) 하나로 관리. 카테고리별은 선택.
 
 export interface CategoryBudgetUsage {
   categoryId: string
@@ -130,22 +122,21 @@ export function getBudgetUsedByCategory(
 }
 
 export function getBudgetRemaining(
-  budgets: Budget[],
+  totalKrw: number,
   transactions: Transaction[],
   month: string,
 ): number {
-  return getBudgetTotal(budgets, month) - getMonthlyExpenseTotal(transactions, month)
+  return totalKrw - getMonthlyExpenseTotal(transactions, month)
 }
 
 // 0~1 (예산 0이면 0). 100% 초과 가능.
 export function getBudgetUsageRate(
-  budgets: Budget[],
+  totalKrw: number,
   transactions: Transaction[],
   month: string,
 ): number {
-  const total = getBudgetTotal(budgets, month)
-  if (total <= 0) return 0
-  return getMonthlyExpenseTotal(transactions, month) / total
+  if (totalKrw <= 0) return 0
+  return getMonthlyExpenseTotal(transactions, month) / totalKrw
 }
 
 // ---------- 5. 분석 계산 ----------

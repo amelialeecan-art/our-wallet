@@ -6,7 +6,6 @@ import {
   formatMoney,
   getActiveMonth,
   getBudgetRemaining,
-  getBudgetTotal,
   getBudgetUsageRate,
   getLiquidAssets,
   getLockedAssets,
@@ -46,9 +45,9 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
   const liquid = getLiquidAssets(db.accounts)
   const locked = getLockedAssets(db.accounts)
   const monthlyExpense = getMonthlyExpenseTotal(db.transactions, month)
-  const budgetTotal = getBudgetTotal(db.budgets, month)
-  const remaining = getBudgetRemaining(db.budgets, db.transactions, month)
-  const usagePct = Math.round(getBudgetUsageRate(db.budgets, db.transactions, month) * 100)
+  const budgetTotal = db.settings.monthlyBudgetKrw ?? 0
+  const remaining = getBudgetRemaining(budgetTotal, db.transactions, month)
+  const usagePct = Math.round(getBudgetUsageRate(budgetTotal, db.transactions, month) * 100)
 
   const total = liquid + locked
   const topSpendable = db.accounts.filter((a) => a.tier === 'spendable').slice(0, 3)

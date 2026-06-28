@@ -98,6 +98,7 @@ interface WalletContextValue {
   setDisplayCurrency: (c: Currency) => void
   setLang: (l: Lang) => void
   setDefaultCurrency: (c: Currency) => void
+  setMonthlyBudget: (krw: number) => void
   addTransaction: (input: NewTransactionInput) => boolean
   updateTransaction: (id: string, patch: UpdateTransactionPatch) => boolean
   deleteTransaction: (id: string) => boolean
@@ -182,6 +183,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     function setDefaultCurrency(c: Currency) {
       setDb((prev) => ({ ...prev, settings: { ...prev.settings, defaultCurrency: c } }))
+    }
+    // 이번 달 총예산 (원화 환산값으로 저장)
+    function setMonthlyBudget(krw: number) {
+      const v = Number.isFinite(krw) && krw > 0 ? Math.round(krw) : 0
+      setDb((prev) => ({ ...prev, settings: { ...prev.settings, monthlyBudgetKrw: v } }))
     }
     function resetData() {
       setDb(resetDb())
@@ -658,6 +664,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setDisplayCurrency,
       setLang,
       setDefaultCurrency,
+      setMonthlyBudget,
       addTransaction,
       updateTransaction,
       deleteTransaction,

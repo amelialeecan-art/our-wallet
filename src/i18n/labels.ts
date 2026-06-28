@@ -218,6 +218,12 @@ const UI: Group = {
   'budget.byCategory': { ko: '카테고리별 사용률', en: 'Usage by category' },
   'budget.empty': { ko: '설정된 카테고리 예산이 없어요', en: 'No category budgets set' },
   'budget.over': { ko: '초과', en: 'Over' },
+  'budget.total': { ko: '총 예산', en: 'Total budget' },
+  'budget.current': { ko: '현재', en: 'Current' },
+  'budget.set': { ko: '예산 저장', en: 'Save budget' },
+  'budget.saved': { ko: '예산을 저장했어요', en: 'Budget saved' },
+  'budget.none': { ko: '예산 없음', en: 'No budget' },
+  'budget.catOptional': { ko: '카테고리별 예산은 카테고리 관리에서 선택적으로 설정해요', en: 'Set optional per-category budgets in Categories' },
   // 일정
   'schedule.title': { ko: '우리 수입과 고정지출', en: 'Our income & fixed costs' },
   'schedule.income': { ko: '들어오는 우리 수입', en: 'Our income' },

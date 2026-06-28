@@ -224,10 +224,13 @@ export function migrateDb(raw: unknown): WalletDb {
   )
 
   const prevSettings = (db.settings ?? {}) as Partial<WalletDb['settings']>
+  // 총예산: 새 필드 우선, 없으면 옛 budgets[0].totalKrw에서 가져옴
+  const legacyTotal = typeof budgets[0]?.totalKrw === 'number' ? budgets[0].totalKrw : undefined
   const settings: WalletDb['settings'] = {
     defaultCurrency: asCurrency(prevSettings.defaultCurrency ?? 'KRW'),
     fxRate: typeof prevSettings.fxRate === 'number' ? prevSettings.fxRate : USD_TO_KRW,
     personDefaults: prevSettings.personDefaults ?? defaultPersonDefaults(paymentSources),
+    monthlyBudgetKrw: prevSettings.monthlyBudgetKrw ?? legacyTotal,
   }
 
   return {
