@@ -13,10 +13,12 @@ import {
   saveDevice,
 } from '../storage/walletStore'
 import {
+  createAdjustmentTransaction,
   createTransactionFromInput,
   createTransactionFromRecurring,
   type NewTransactionInput,
 } from '../domain/transactions'
+import { applyTxToBalances, expenseFromAccount } from '../domain/balances'
 import {
   classifyRecurring,
   getActiveMonth,
@@ -99,6 +101,7 @@ interface WalletContextValue {
   addTransaction: (input: NewTransactionInput) => boolean
   updateTransaction: (id: string, patch: UpdateTransactionPatch) => boolean
   deleteTransaction: (id: string) => boolean
+  adjustAccountBalance: (accountId: string, newBalanceOriginal: number) => boolean
   applyRecurringItem: (recurringItemId: string, options?: { date?: string }) => ApplyRecurringResult
   // 계좌
   addAccount: (input: NewAccountInput) => boolean
@@ -192,25 +195,41 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         ? configuredDefault
         : deriveDefaultPaymentSource(activeSources, device.role)
 
-    // 지출 거래 추가. 이번 단계에서는 거래만 추가하고 계좌 잔액은 건드리지 않는다.
+    const fxRate = db.settings.fxRate
+
+    // 거래 추가 + 잔액 반영.
+    // expense: immediate 정산이면 연결 계좌에서 차감 / income: 입금 계좌 증가 / transfer: from→to 이동
     function addTransaction(input: NewTransactionInput): boolean {
       try {
         if (!device.role) return false
         const amount = Number(input.amountOriginal)
         if (!amount || amount <= 0) return false
-        const tx = createTransactionFromInput(input, {
-          role: device.role,
-          fxRate: db.settings.fxRate,
-          defaultPaymentSourceId,
-        })
-        setDb((prev) => ({ ...prev, transactions: [...prev.transactions, tx] }))
+        const type = input.type ?? 'expense'
+
+        const psId = input.paymentSourceId || defaultPaymentSourceId || ''
+        let fromAccountId = input.fromAccountId
+        let toAccountId = input.toAccountId
+        if (type === 'expense') {
+          fromAccountId = expenseFromAccount(db.paymentSources, psId)
+          toAccountId = undefined
+        }
+
+        const tx = createTransactionFromInput(
+          { ...input, type, fromAccountId, toAccountId },
+          { role: device.role, fxRate, defaultPaymentSourceId },
+        )
+        setDb((prev) => ({
+          ...prev,
+          transactions: [...prev.transactions, tx],
+          accounts: applyTxToBalances(prev.accounts, tx, 1, fxRate),
+        }))
         return true
       } catch {
         return false
       }
     }
 
-    // 거래 수정. 금액/통화가 바뀌면 amountKrw를 고정환율로 다시 계산한다.
+    // 거래 수정. 잔액은 옛 효과를 되돌리고 새 효과를 다시 적용한다.
     function updateTransaction(id: string, patch: UpdateTransactionPatch): boolean {
       try {
         const existing = db.transactions.find((t) => t.id === id)
@@ -222,7 +241,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           patch.amountOriginal != null ? Number(patch.amountOriginal) : existing.amountOriginal
         if (!amountOriginal || amountOriginal <= 0) return false
 
-        const fxRate = db.settings.fxRate
+        const paymentSourceId =
+          (patch.paymentSourceId ?? existing.paymentSourceId) || defaultPaymentSourceId || existing.paymentSourceId
+
+        // 잔액 연결 재계산: 지출은 정산방식 기준, 그 외(income/transfer/adjustment)는 기존 from/to 유지
+        const fromAccountId =
+          existing.type === 'expense' ? expenseFromAccount(db.paymentSources, paymentSourceId) : existing.fromAccountId
+        const toAccountId = existing.type === 'expense' ? undefined : existing.toAccountId
+
         const updated: Transaction = {
           ...existing,
           ...patch,
@@ -232,15 +258,35 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           fxRateUsed: fxRate,
           categoryId: (patch.categoryId ?? existing.categoryId) || 'other',
           usedFor: (patch.usedFor ?? existing.usedFor) || 'shared',
-          paymentSourceId:
-            (patch.paymentSourceId ?? existing.paymentSourceId) ||
-            defaultPaymentSourceId ||
-            existing.paymentSourceId,
+          paymentSourceId,
+          fromAccountId,
+          toAccountId,
           updatedAt: new Date().toISOString(),
         }
+        setDb((prev) => {
+          const reverted = applyTxToBalances(prev.accounts, existing, -1, fxRate)
+          const reapplied = applyTxToBalances(reverted, updated, 1, fxRate)
+          return {
+            ...prev,
+            transactions: prev.transactions.map((t) => (t.id === id ? updated : t)),
+            accounts: reapplied,
+          }
+        })
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    // 거래 삭제 + 잔액 효과 되돌리기.
+    function deleteTransaction(id: string): boolean {
+      try {
+        const existing = db.transactions.find((t) => t.id === id)
+        if (!existing) return false
         setDb((prev) => ({
           ...prev,
-          transactions: prev.transactions.map((t) => (t.id === id ? updated : t)),
+          transactions: prev.transactions.filter((t) => t.id !== id),
+          accounts: applyTxToBalances(prev.accounts, existing, -1, fxRate),
         }))
         return true
       } catch {
@@ -248,11 +294,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 거래 삭제 (id 기준). 없는 id는 무시.
-    function deleteTransaction(id: string): boolean {
+    // 잔액 맞추기: 앱 잔액과 실제 잔액이 다를 때 보정. adjustment 거래로 기록.
+    function adjustAccountBalance(accountId: string, newBalanceOriginal: number): boolean {
       try {
-        if (!db.transactions.some((t) => t.id === id)) return false
-        setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) }))
+        if (!device.role) return false
+        const acc = db.accounts.find((a) => a.id === accountId)
+        if (!acc) return false
+        const newOrig = Number(newBalanceOriginal)
+        if (!Number.isFinite(newOrig) || newOrig < 0) return false
+        const newKrw = toKrw(newOrig, acc.currency, fxRate)
+        const origDelta = newOrig - acc.balanceOriginal
+        const krwDelta = newKrw - acc.balanceKrw
+        if (krwDelta === 0) return true // 변화 없음
+        const tx = createAdjustmentTransaction(accountId, acc.currency, origDelta, krwDelta, {
+          role: device.role,
+          fxRate,
+          label: device.lang === 'en' ? 'Balance match' : '잔액 맞추기',
+        })
+        setDb((prev) => ({
+          ...prev,
+          // 잔액은 입력한 실제 값으로 직접 설정 (소수 오차 방지). tx는 차액을 기록해 삭제 시 되돌릴 수 있게.
+          accounts: prev.accounts.map((a) =>
+            a.id === accountId ? { ...a, balanceOriginal: newOrig, balanceKrw: newKrw } : a,
+          ),
+          transactions: [...prev.transactions, tx],
+        }))
         return true
       } catch {
         return false
@@ -277,14 +343,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const date = options?.date ?? `${month}-${day}`
         const kind = classifyRecurring(item)
 
+        // 잔액 연결 해석
+        const firstSpendable = db.accounts.find((a) => a.tier === 'spendable')?.id
+        let fromAccountId: string | undefined
+        let toAccountId: string | undefined
+        if (kind === 'income') {
+          toAccountId = item.accountId ?? firstSpendable
+        } else if (kind === 'expense') {
+          fromAccountId = expenseFromAccount(db.paymentSources, item.paymentSourceId)
+        } else {
+          // savingTransfer: 출발(연결 계좌) → 도착(item.accountId). 둘 다 있어야 잔액 이동.
+          fromAccountId = expenseFromAccount(db.paymentSources, item.paymentSourceId)
+          toAccountId = item.accountId
+          if (!fromAccountId || !toAccountId) {
+            fromAccountId = undefined
+            toAccountId = undefined
+          }
+        }
+
         const tx = createTransactionFromRecurring(item, {
           role: device.role,
-          fxRate: db.settings.fxRate,
+          fxRate,
           type: recurringTxType(kind),
           date,
           label: recurringTitle(item, device.lang),
+          fromAccountId,
+          toAccountId,
         })
-        setDb((prev) => ({ ...prev, transactions: [...prev.transactions, tx] }))
+        setDb((prev) => ({
+          ...prev,
+          transactions: [...prev.transactions, tx],
+          accounts: applyTxToBalances(prev.accounts, tx, 1, fxRate),
+        }))
         return 'applied'
       } catch {
         return 'error'
@@ -571,6 +661,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       addTransaction,
       updateTransaction,
       deleteTransaction,
+      adjustAccountBalance,
       applyRecurringItem,
       addAccount,
       updateAccount,

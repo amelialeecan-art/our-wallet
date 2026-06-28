@@ -10,7 +10,13 @@ import type {
   HolderLabel,
   PaymentKind,
   PaymentSource,
+  SettlementType,
 } from './types'
+
+function validSettlement(s: unknown, kind: PaymentKind): SettlementType {
+  if (s === 'immediate' || s === 'deferred' || s === 'none') return s
+  return kind === 'card' ? 'deferred' : 'immediate'
+}
 
 function makeId(prefix: string): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto
@@ -82,6 +88,7 @@ export interface NewPaymentSourceInput {
   holder: HolderLabel
   currency: Currency
   linkedAccountId?: string
+  settlementType?: SettlementType
   isActive?: boolean
 }
 export type PaymentSourcePatch = Partial<NewPaymentSourceInput>
@@ -97,6 +104,7 @@ export function createPaymentSource(input: NewPaymentSourceInput): PaymentSource
     holder: input.holder,
     currency: validCurrency(input.currency),
     linkedAccountId: input.linkedAccountId || undefined,
+    settlementType: validSettlement(input.settlementType, input.kind),
     isActive: input.isActive ?? true,
   }
 }
@@ -105,13 +113,16 @@ export function applyPaymentSourcePatch(existing: PaymentSource, patch: PaymentS
   const nameKo = (patch.nameKo ?? existing.nameKo).trim()
   if (!nameKo) return null
   const nameEn = (patch.nameEn ?? existing.nameEn).trim() || nameKo
+  const kind = patch.kind ?? existing.kind
   return {
     ...existing,
     ...patch,
     nameKo,
     nameEn,
+    kind,
     currency: validCurrency(patch.currency ?? existing.currency),
     linkedAccountId: (patch.linkedAccountId ?? existing.linkedAccountId) || undefined,
+    settlementType: validSettlement(patch.settlementType ?? existing.settlementType, kind),
     isActive: patch.isActive ?? existing.isActive ?? true,
   }
 }

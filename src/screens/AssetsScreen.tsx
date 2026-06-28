@@ -12,9 +12,10 @@ import type { Account } from '../domain/types'
 interface Props {
   active: boolean
   cur: Currency
+  onAdjust: (accountId: string) => void
 }
 
-export default function AssetsScreen({ active, cur }: Props) {
+export default function AssetsScreen({ active, cur, onAdjust }: Props) {
   const { db, fxRate, lang } = useWallet()
 
   const total = getTotalAssets(db.accounts)
@@ -24,7 +25,7 @@ export default function AssetsScreen({ active, cur }: Props) {
   const saving = db.accounts.filter((a) => a.tier === 'saving')
 
   const row = (a: Account) => (
-    <div className="gl prow" key={a.id}>
+    <div className="gl prow" key={a.id} onClick={() => onAdjust(a.id)}>
       <span className={'dot ' + colorClass(a.holder)}></span>
       <div className="grow">
         <div className="aname">{accountTitle(a, lang)}</div>
@@ -55,9 +56,7 @@ export default function AssetsScreen({ active, cur }: Props) {
           <div className="prows">{saving.map(row)}</div>
         </div>
 
-        <div className="between" style={{ padding: '0 6px' }}>
-          <span className="cap" style={{ margin: 0 }}>{tUi('assets.lastUpdate', lang)}</span>
-        </div>
+        <div className="cap" style={{ padding: '0 6px' }}>{tUi('assets.adjustHint', lang)}</div>
       </div>
     </section>
   )

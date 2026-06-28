@@ -20,8 +20,8 @@ export type Role = 'hyeonsu' | 'tanner'
 // 거래 종류
 export type TransactionType = 'expense' | 'income' | 'transfer' | 'adjustment'
 
-// 거래 출처: 직접 입력 / 반복항목 반영
-export type SourceKind = 'manual' | 'recurring'
+// 거래 출처: 직접 입력 / 반복항목 반영 / 잔액 맞추기
+export type SourceKind = 'manual' | 'recurring' | 'adjustment'
 
 // 사용대상 = 누구를 위한 지출/거래였나 (분석용 라벨)
 export type UsedFor = 'shared' | 'hyeonsu' | 'tanner'
@@ -44,6 +44,12 @@ export type AccountKind =
 
 // 결제 통로 종류
 export type PaymentKind = 'card' | 'account' | 'cash'
+
+// 정산 방식: 지출이 연결 계좌 잔액에 어떻게 영향을 주는가
+// immediate: 지출 즉시 연결 계좌 차감 (체크카드/현금/계좌이체)
+// deferred: 지출은 기록하되 계좌는 즉시 차감 안 함 (신용카드 — 나중에 카드값으로)
+// none: 잔액 영향 없음
+export type SettlementType = 'immediate' | 'deferred' | 'none'
 
 // 누구의 통로/보관인지 라벨 (소유권 아님)
 export type HolderLabel = 'shared' | 'hyeonsu' | 'tanner'
@@ -93,6 +99,7 @@ export interface PaymentSource {
   holder: HolderLabel
   currency: Currency
   linkedAccountId?: string
+  settlementType?: SettlementType // 기본 immediate (card는 deferred)
   isActive?: boolean // 기본 true. false면 AddScreen 목록에서 숨김(과거 거래는 유지)
 }
 
@@ -121,7 +128,10 @@ export interface Transaction {
   categoryId: CategoryId | string
   usedFor: UsedFor
   paymentSourceId: string // 어디서 나갔는지
-  accountId?: string // (선택) 직접 연결된 보관 위치
+  accountId?: string // (레거시/선택) 직접 연결된 보관 위치
+  // 잔액 반영용: 돈이 빠지는 계좌(from) / 들어오는 계좌(to)
+  fromAccountId?: string
+  toAccountId?: string
   recordedBy: RecordedBy // 누가 입력했는지
   memo?: string
   // 출처 (반복항목에서 반영된 거래 추적용)

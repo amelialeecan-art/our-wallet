@@ -23,6 +23,7 @@ import QuickActionEditScreen from './screens/QuickActionEditScreen.tsx'
 import RecurringSettingsScreen from './screens/RecurringSettingsScreen.tsx'
 import RecurringEditScreen from './screens/RecurringEditScreen.tsx'
 import DataSettingsScreen from './screens/DataSettingsScreen.tsx'
+import BalanceMatchScreen from './screens/BalanceMatchScreen.tsx'
 import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
 import type { ScreenId } from './types'
 
@@ -36,6 +37,7 @@ function AppInner() {
   const [editingCatId, setEditingCatId] = useState<string | null>(null)
   const [editingQaId, setEditingQaId] = useState<string | null>(null)
   const [editingRecId, setEditingRecId] = useState<string | null>(null)
+  const [adjustAccId, setAdjustAccId] = useState<string | null>(null)
 
   function go(id: ScreenId) {
     setScreen(id)
@@ -67,6 +69,10 @@ function AppInner() {
     setEditingRecId(id)
     go('recurringEdit')
   }
+  function openAdjust(id: string) {
+    setAdjustAccId(id)
+    go('balanceMatch')
+  }
 
   // 역할 미선택 시 역할 선택 화면 (탭바 없이)
   if (!role) return <RoleSelectScreen />
@@ -75,7 +81,7 @@ function AppInner() {
     <>
       <HomeScreen active={screen === 'home'} cur={displayCurrency} setCur={setDisplayCurrency} onGo={go} onEdit={openEdit} />
       <AddScreen active={screen === 'add'} cur={displayCurrency} setCur={setDisplayCurrency} />
-      <AssetsScreen active={screen === 'assets'} cur={displayCurrency} />
+      <AssetsScreen active={screen === 'assets'} cur={displayCurrency} onAdjust={openAdjust} />
       <SpendingScreen active={screen === 'spending'} />
       <BudgetScreen active={screen === 'budget'} />
       <ScheduleScreen active={screen === 'schedule'} onGo={go} />
@@ -95,6 +101,7 @@ function AppInner() {
       <RecurringSettingsScreen active={screen === 'recurringSettings'} onGo={go} onEdit={openRecEdit} />
       <RecurringEditScreen key={'rec-' + (editingRecId ?? 'new')} active={screen === 'recurringEdit'} recurringId={editingRecId} onDone={() => go('recurringSettings')} />
       <DataSettingsScreen active={screen === 'dataSettings'} onGo={go} />
+      <BalanceMatchScreen key={'bm-' + (adjustAccId ?? 'none')} active={screen === 'balanceMatch'} accountId={adjustAccId} onDone={() => go('assets')} />
 
       <TabBar screen={screen} onGo={go} />
       <div className="toast" id="toast">저장됐어요</div>

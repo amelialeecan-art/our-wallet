@@ -26,3 +26,4 @@ export type ScreenId =
   | 'recurringSettings'
   | 'recurringEdit'
   | 'dataSettings'
+  | 'balanceMatch'
