@@ -3,7 +3,7 @@ import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
 import { formatMoney } from '../domain/calculations.ts'
-import { parseAmount, formatAmountDisplay, pressAmountKey, convertRaw } from '../lib/amountInput.ts'
+import { parseAmount, formatAmountDisplay, sanitizeAmountInput, convertRaw } from '../lib/amountInput.ts'
 import { accountChipLabel, categoryLabel, colorClass, paymentSourceTitle, quickActionTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { Currency } from '../types'
 import type { UsedFor } from '../domain/types'
@@ -18,15 +18,32 @@ type Mode = 'expense' | 'income' | 'transfer' | 'adjust'
 const MODES: Mode[] = ['expense', 'income', 'transfer', 'adjust']
 const USED_FOR: UsedFor[] = ['shared', 'hyeonsu', 'tanner']
 
+const amountInputStyle: React.CSSProperties = {
+  border: 0,
+  background: 'transparent',
+  outline: 'none',
+  font: 'inherit',
+  fontSize: 44,
+  fontWeight: 800,
+  textAlign: 'center',
+  minWidth: '1ch',
+  color: 'var(--ink)',
+  padding: 0,
+}
+
+// 가로 스크롤 칩 줄
+const scrollRow: React.CSSProperties = { display: 'flex', gap: 8, overflowX: 'auto', padding: '4px 2px', margin: '0 -2px' }
+const chipNoWrap: React.CSSProperties = { flex: '0 0 auto', whiteSpace: 'nowrap' }
+
 export default function AddScreen({ active, cur, setCur }: Props) {
   const { db, lang, fxRate, defaultPaymentSourceId, addTransaction, adjustAccountBalance } = useWallet()
 
   const firstSpendable = db.accounts.find((a) => a.tier === 'spendable')?.id ?? db.accounts[0]?.id ?? ''
   const firstSaving = db.accounts.find((a) => a.tier === 'saving')?.id ?? db.accounts[0]?.id ?? ''
+  const activePayments = db.paymentSources.filter((p) => p.isActive !== false)
 
   const [mode, setMode] = useState<Mode>('expense')
   const [raw, setRaw] = useState('')
-  const [keypadOpen, setKeypadOpen] = useState(false)
   const [usedFor, setUsedFor] = useState<UsedFor>('shared')
   const [catId, setCatId] = useState<string | null>(null)
   const [paymentSourceId, setPaymentSourceId] = useState<string | null>(defaultPaymentSourceId)
@@ -36,19 +53,15 @@ export default function AddScreen({ active, cur, setCur }: Props) {
   const [adjustId, setAdjustId] = useState<string>(firstSpendable)
   const [memo, setMemo] = useState('')
 
-  // 잔액 맞추기 모드는 선택 계좌 통화로 입력, 그 외는 표시통화(cur)
   const adjustAcc = db.accounts.find((a) => a.id === adjustId)
   const inputCur: Currency = mode === 'adjust' ? (adjustAcc?.currency ?? 'KRW') : cur
-
   const n = parseAmount(raw)
   const amtCur = inputCur === 'KRW' ? '₩' : '$'
-  const amtVal = formatAmountDisplay(raw, inputCur)
 
-  function pressKey(k: string) {
-    setRaw((prev) => pressAmountKey(prev, k, inputCur))
-  }
+  const selectedPs = activePayments.find((p) => p.id === paymentSourceId) ?? activePayments.find((p) => p.id === defaultPaymentSourceId) ?? activePayments[0]
+  const settlement = selectedPs?.settlementType ?? 'immediate'
+  const settleHint = settlement === 'deferred' ? 'add.payDeferred' : settlement === 'none' ? 'add.payNone' : 'add.payImmediate'
 
-  // 통화 토글: 입력값을 환산해서 바꾼다 (1500 KRW = 1 USD)
   function changeCur(next: Currency) {
     if (next === cur) return
     setRaw((prev) => convertRaw(prev, cur, next, fxRate))
@@ -58,7 +71,6 @@ export default function AddScreen({ active, cur, setCur }: Props) {
   function switchMode(m: Mode) {
     setMode(m)
     setRaw('')
-    setKeypadOpen(false)
   }
 
   const activeQuickActions = db.quickActions
@@ -72,7 +84,6 @@ export default function AddScreen({ active, cur, setCur }: Props) {
     if (q.usedFor) setUsedFor(q.usedFor)
     if (q.paymentSourceId) setPaymentSourceId(q.paymentSourceId)
     setMemo(q.memo ?? quickActionTitle(q, lang))
-    setKeypadOpen(false)
   }
 
   function resetInputs() {
@@ -81,7 +92,6 @@ export default function AddScreen({ active, cur, setCur }: Props) {
     setCatId(null)
     setUsedFor('shared')
     setPaymentSourceId(defaultPaymentSourceId)
-    setKeypadOpen(false)
   }
 
   function save() {
@@ -105,7 +115,8 @@ export default function AddScreen({ active, cur, setCur }: Props) {
       if (fromId === toId) { showToast(tUi('add.transferSame', lang)); return }
       input = { type: 'transfer' as const, amountOriginal: n, currency: cur, categoryId: 'other', usedFor: 'shared' as const, fromAccountId: fromId, toAccountId: toId, memo }
     } else {
-      input = { type: 'expense' as const, amountOriginal: n, currency: cur, categoryId: catId ?? 'other', usedFor, paymentSourceId: paymentSourceId ?? undefined, memo }
+      if (!selectedPs) { showToast(tUi('add.noPayment', lang)); return }
+      input = { type: 'expense' as const, amountOriginal: n, currency: cur, categoryId: catId ?? 'other', usedFor, paymentSourceId: selectedPs.id, memo }
     }
     if (!addTransaction(input)) {
       showToast(tUi('toast.saveFailed', lang))
@@ -116,16 +127,16 @@ export default function AddScreen({ active, cur, setCur }: Props) {
   }
 
   const accountChips = (selected: string, onPick: (id: string) => void) => (
-    <div className="chips">
+    <div style={scrollRow}>
       {db.accounts.map((a) => (
-        <button key={a.id} className={'chip' + (selected === a.id ? ' sel' : '')} onClick={() => onPick(a.id)}>{accountChipLabel(a, lang)}</button>
+        <button key={a.id} className={'chip' + (selected === a.id ? ' sel' : '')} style={chipNoWrap} onClick={() => onPick(a.id)}>{accountChipLabel(a, lang)}</button>
       ))}
     </div>
   )
 
   return (
     <section className={'screen' + (active ? ' active' : '')} id="add">
-      <div className="stack">
+      <div className="stack" style={{ paddingBottom: 4 }}>
         <div className="head">{tUi('add.title', lang)}</div>
 
         <div className="seg3">
@@ -134,28 +145,46 @@ export default function AddScreen({ active, cur, setCur }: Props) {
           ))}
         </div>
 
+        {/* 금액 */}
         <div className="gl pod">
           <div className="between" style={{ marginBottom: 2 }}>
             <span className="label">{mode === 'adjust' ? tUi('add.actualBalance', lang) : tUi('add.amount', lang)}</span>
             {mode !== 'adjust' && <CurrencyToggle cur={cur} setCur={changeCur} variant="text" />}
           </div>
-          <div className={'amount' + (n === 0 ? ' empty' : '')} onClick={() => setKeypadOpen((o) => !o)}>
+          <div className="amount" style={{ cursor: 'text' }}>
             <span className="cur">{amtCur}</span>
-            <span className="val num">{amtVal}</span>
+            <input
+              className="num"
+              inputMode="decimal"
+              value={raw}
+              placeholder="0"
+              size={Math.max(1, raw.length)}
+              onChange={(e) => setRaw(sanitizeAmountInput(e.target.value, inputCur))}
+              style={amountInputStyle}
+            />
           </div>
-          <div className="hint">{tUi('add.tapToEnter', lang)}</div>
-          <div className={'keypad' + (keypadOpen ? '' : ' hidden')}>
-            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-              <button key={d} onClick={() => pressKey(d)}>{d}</button>
-            ))}
-            {inputCur === 'USD' ? <button onClick={() => pressKey('.')}>.</button> : <button onClick={() => pressKey('00')}>00</button>}
-            <button onClick={() => pressKey('0')}>0</button>
-            <button onClick={() => pressKey('del')}>⌫</button>
-          </div>
+          <div className="hint">{n > 0 ? `${amtCur}${formatAmountDisplay(raw, inputCur)}` : tUi('add.enterAmountHint', lang)}</div>
         </div>
 
+        {/* 지출: 결제통로 먼저 */}
         {mode === 'expense' && (
           <>
+            <div>
+              <div className="sect">{tUi('add.paidWith', lang)}</div>
+              {activePayments.length === 0 ? (
+                <div className="cap">{tUi('add.noPayment', lang)}</div>
+              ) : (
+                <>
+                  <div style={scrollRow}>
+                    {activePayments.map((p) => (
+                      <button key={p.id} className={'chip' + (selectedPs?.id === p.id ? ' sel' : '')} style={chipNoWrap} onClick={() => setPaymentSourceId(p.id)}>{paymentSourceTitle(p, lang)}</button>
+                    ))}
+                  </div>
+                  <div className="cap" style={{ padding: '0 6px' }}>{tUi(settleHint, lang)}</div>
+                </>
+              )}
+            </div>
+
             <div>
               <div className="sect">{tUi('add.forWhom', lang)}</div>
               <div className="seg3" id="who">
@@ -164,6 +193,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
                 ))}
               </div>
             </div>
+
             <div>
               <div className="sect">{tUi('add.category', lang)}</div>
               <div className="chips">
@@ -172,19 +202,6 @@ export default function AddScreen({ active, cur, setCur }: Props) {
                 ))}
               </div>
             </div>
-            <details className="gl details">
-              <summary><span>{tUi('add.moreDetails', lang)}</span><span className="muted">＋</span></summary>
-              <div className="body">
-                <div className="frow" style={{ display: 'block' }}>
-                  <span>{tUi('add.paidWith', lang)}</span>
-                  <div className="chips" style={{ marginTop: 10 }}>
-                    {db.paymentSources.filter((p) => p.isActive !== false).map((p) => (
-                      <button key={p.id} className={'chip' + (paymentSourceId === p.id ? ' sel' : '')} onClick={() => setPaymentSourceId(p.id)}>{paymentSourceTitle(p, lang)}</button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </details>
           </>
         )}
 
@@ -215,11 +232,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
           </div>
         )}
 
-        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}>
-          <span>{mode === 'adjust' ? tUi('balance.save', lang) : tUi('common.save', lang)}</span>
-        </button>
-
-        {/* 자주 쓰는 항목: 접힌 상태, 저장보다 아래 */}
+        {/* 자주 쓰는 항목 (접힘, 저장 아래 우선순위) */}
         {mode === 'expense' && activeQuickActions.length > 0 && (
           <details className="gl details">
             <summary><span>{tUi('add.quick', lang)}</span><span className="muted">＋</span></summary>
@@ -235,6 +248,13 @@ export default function AddScreen({ active, cur, setCur }: Props) {
             </div>
           </details>
         )}
+      </div>
+
+      {/* 저장 버튼: 탭바 위에 항상 고정 */}
+      <div style={{ position: 'sticky', bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', zIndex: 4, marginTop: 12 }}>
+        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}>
+          <span>{mode === 'adjust' ? tUi('balance.save', lang) : tUi('common.save', lang)}</span>
+        </button>
       </div>
     </section>
   )
