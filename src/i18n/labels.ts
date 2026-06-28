@@ -152,9 +152,13 @@ const UI: Group = {
   'home.noRecords': { ko: '아직 기록이 없어요', en: 'No records yet' },
   // 입력
   'add.title': { ko: '빠른 입력', en: 'Quick add' },
-  'add.type.expense': { ko: '지출', en: 'Expense' },
+  'add.type.expense': { ko: '지출', en: 'Spend' },
   'add.type.income': { ko: '수입', en: 'Income' },
-  'add.type.transfer': { ko: '이체', en: 'Transfer' },
+  'add.type.transfer': { ko: '이체', en: 'Move' },
+  'add.type.adjust': { ko: '맞추기', en: 'Match' },
+  'add.account': { ko: '계좌', en: 'Account' },
+  'add.actualBalance': { ko: '실제 잔액', en: 'Actual balance' },
+  'add.quick': { ko: '자주 쓰는 항목', en: 'Frequent items' },
   'add.depositAccount': { ko: '입금 계좌', en: 'Deposit to' },
   'add.fromAccount': { ko: '보내는 계좌', en: 'From account' },
   'add.toAccount': { ko: '받는 계좌', en: 'To account' },
@@ -434,6 +438,11 @@ export function accountSubtitle(acc: Account, lang: Lang): string {
 
 export function paymentSourceTitle(ps: PaymentSource, lang: Lang): string {
   return (lang === 'ko' ? ps.nameKo : ps.nameEn) || ps.nameKo || ps.nameEn || ''
+}
+
+// 계좌 선택용: 이름 + 종류를 함께 (같은 이름 계좌 구분)
+export function accountChipLabel(acc: Account, lang: Lang): string {
+  return `${accountTitle(acc, lang)} · ${accountSubtitle(acc, lang)}`
 }
 
 // 카테고리 라벨: 저장된 이름 우선, 없으면 기본 카테고리 i18n, 그것도 없으면 id.
