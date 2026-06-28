@@ -96,13 +96,13 @@ function migratePaymentSource(p: Partial<PaymentSource>): PaymentSource {
   const who = holder === 'hyeonsu' ? '현수' : holder === 'tanner' ? '태너' : '우리'
   const koFallback = kind === 'card' ? `${who}카드` : kind === 'account' ? `${who} 계좌 이체` : '현금'
   const enFallback = kind === 'card' ? `${who} Card` : kind === 'account' ? `${who} transfer` : 'Cash'
-  // 정산 방식 기본값: 카드는 deferred(나중에 카드값), 그 외는 immediate
-  const settlementType =
-    p.settlementType === 'immediate' || p.settlementType === 'deferred' || p.settlementType === 'none'
-      ? p.settlementType
-      : kind === 'card'
-        ? 'deferred'
-        : 'immediate'
+  // 정산 방식: 체크/데빗 전제(신용카드 미사용). 기본 immediate.
+  // 카드에 자동으로 박혔던 옛 deferred 기본값은 immediate로 정리.
+  // 카드가 아닌 통로에 사용자가 직접 지정한 deferred/none은 존중.
+  let settlementType: 'immediate' | 'deferred' | 'none'
+  if (p.settlementType === 'immediate' || p.settlementType === 'none') settlementType = p.settlementType
+  else if (p.settlementType === 'deferred') settlementType = kind === 'card' ? 'immediate' : 'deferred'
+  else settlementType = 'immediate'
   return {
     id: p.id ?? 'ps_' + Math.random().toString(36).slice(2, 8),
     nameKo: p.nameKo ?? koFallback,

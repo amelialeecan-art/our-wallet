@@ -41,8 +41,8 @@ export function createSeedDb(): WalletDb {
 
     // 결제 통로
     paymentSources: [
-      { id: 'ps_hyeonsu_card', nameKo: '현수카드', nameEn: 'Hyeonsu Card', kind: 'card', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank', settlementType: 'deferred', isActive: true },
-      { id: 'ps_tanner_card', nameKo: 'Tanner Card', nameEn: 'Tanner Card', kind: 'card', holder: 'tanner', currency: 'KRW', linkedAccountId: 'acc_tanner_bank', settlementType: 'deferred', isActive: true },
+      { id: 'ps_hyeonsu_card', nameKo: '현수카드', nameEn: 'Hyeonsu Card', kind: 'card', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank', settlementType: 'immediate', isActive: true },
+      { id: 'ps_tanner_card', nameKo: 'Tanner Card', nameEn: 'Tanner Card', kind: 'card', holder: 'tanner', currency: 'KRW', linkedAccountId: 'acc_tanner_bank', settlementType: 'immediate', isActive: true },
       { id: 'ps_hyeonsu_transfer', nameKo: '현수 계좌 이체', nameEn: 'Hyeonsu transfer', kind: 'account', holder: 'hyeonsu', currency: 'KRW', linkedAccountId: 'acc_hyeonsu_bank', settlementType: 'immediate', isActive: true },
     ],
 
