@@ -4,7 +4,7 @@ import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
 import { accountTitle, colorClass, tEnum, tUi } from '../i18n/labels.ts'
 import type { Currency } from '../types'
-import type { HolderLabel, PaymentKind } from '../domain/types'
+import type { HolderLabel, PaymentKind, SettlementType } from '../domain/types'
 
 interface Props {
   active: boolean
@@ -14,6 +14,7 @@ interface Props {
 
 const HOLDERS: HolderLabel[] = ['shared', 'hyeonsu', 'tanner']
 const KINDS: PaymentKind[] = ['card', 'account', 'cash']
+const SETTLEMENTS: SettlementType[] = ['immediate', 'deferred', 'none']
 
 const inputStyle: React.CSSProperties = {
   font: 'inherit',
@@ -37,6 +38,7 @@ export default function PaymentSourceEditScreen({ active, paymentSourceId, onDon
   const [holder, setHolder] = useState<HolderLabel>(existing?.holder ?? 'shared')
   const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'KRW')
   const [linkedAccountId, setLinkedAccountId] = useState<string>(existing?.linkedAccountId ?? '')
+  const [settlementType, setSettlementType] = useState<SettlementType>(existing?.settlementType ?? (existing?.kind === 'card' ? 'deferred' : 'immediate'))
   const [isActive, setIsActive] = useState<boolean>(existing?.isActive ?? true)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -59,7 +61,7 @@ export default function PaymentSourceEditScreen({ active, paymentSourceId, onDon
       showToast(tUi('pay.nameRequired', lang))
       return
     }
-    const input = { nameKo, nameEn, kind, holder, currency, linkedAccountId: linkedAccountId || undefined, isActive }
+    const input = { nameKo, nameEn, kind, holder, currency, linkedAccountId: linkedAccountId || undefined, settlementType, isActive }
     const ok = isNew ? addPaymentSource(input) : updatePaymentSource(paymentSourceId!, input)
     if (!ok) {
       showToast(tUi('toast.saveFailed', lang))
@@ -125,6 +127,16 @@ export default function PaymentSourceEditScreen({ active, paymentSourceId, onDon
               <button key={a.id} className={'chip' + (linkedAccountId === a.id ? ' sel' : '')} onClick={() => setLinkedAccountId(a.id)}>{accountTitle(a, lang)}</button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <div className="sect">{tUi('pay.settlement', lang)}</div>
+          <div className="seg3">
+            {SETTLEMENTS.map((s) => (
+              <button key={s} className={settlementType === s ? 'sel us' : ''} onClick={() => setSettlementType(s)}>{tUi('pay.settlement.' + s, lang)}</button>
+            ))}
+          </div>
+          <div className="cap" style={{ padding: '0 6px' }}>{tUi('pay.settlementNote', lang)}</div>
         </div>
 
         <div className="gl pod">

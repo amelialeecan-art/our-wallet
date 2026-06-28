@@ -96,6 +96,13 @@ function migratePaymentSource(p: Partial<PaymentSource>): PaymentSource {
   const who = holder === 'hyeonsu' ? '현수' : holder === 'tanner' ? '태너' : '우리'
   const koFallback = kind === 'card' ? `${who}카드` : kind === 'account' ? `${who} 계좌 이체` : '현금'
   const enFallback = kind === 'card' ? `${who} Card` : kind === 'account' ? `${who} transfer` : 'Cash'
+  // 정산 방식 기본값: 카드는 deferred(나중에 카드값), 그 외는 immediate
+  const settlementType =
+    p.settlementType === 'immediate' || p.settlementType === 'deferred' || p.settlementType === 'none'
+      ? p.settlementType
+      : kind === 'card'
+        ? 'deferred'
+        : 'immediate'
   return {
     id: p.id ?? 'ps_' + Math.random().toString(36).slice(2, 8),
     nameKo: p.nameKo ?? koFallback,
@@ -104,6 +111,7 @@ function migratePaymentSource(p: Partial<PaymentSource>): PaymentSource {
     holder,
     currency: asCurrency(p.currency),
     linkedAccountId: p.linkedAccountId,
+    settlementType,
     isActive: p.isActive ?? true,
   }
 }

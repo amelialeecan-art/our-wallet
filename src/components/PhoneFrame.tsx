@@ -47,14 +47,6 @@ export default function PhoneFrame({ children }: { children: ReactNode }) {
 
   return (
     <div className="phone" id="phone" ref={phoneRef}>
-      <div className="statusbar">
-        <span>9:41</span>
-        <span className="dots">
-          <i></i>
-          <i></i>
-          <i></i>
-        </span>
-      </div>
       {children}
     </div>
   )

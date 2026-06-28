@@ -50,7 +50,8 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
   const remaining = getBudgetRemaining(db.budgets, db.transactions, month)
   const usagePct = Math.round(getBudgetUsageRate(db.budgets, db.transactions, month) * 100)
 
-  const spendableAccounts = db.accounts.filter((a) => a.tier === 'spendable')
+  const total = liquid + locked
+  const topSpendable = db.accounts.filter((a) => a.tier === 'spendable').slice(0, 3)
   const recent = getRecentExpenses(db.transactions, 3)
   const psById = new Map(db.paymentSources.map((p) => [p.id, p]))
   const pending = getPendingRecurring(db, month).slice(0, 3)
@@ -94,12 +95,7 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
           <CurrencyToggle cur={cur} setCur={setCur} variant="symbol" />
         </div>
 
-        <div className="gl hero">
-          <div className="label">{tUi('home.available', lang)}</div>
-          <div className="big num">{formatMoney(heroDisplay, cur, fxRate)}</div>
-          <div className="cap">{tUi('home.setAside', lang)} {formatMoney(locked, cur, fxRate)} · $1 = ₩{fxRate.toLocaleString('ko-KR')}</div>
-        </div>
-
+        {/* 1. 이번 달 우리 지출 / 남은 예산 */}
         <div className="gl pod" data-go="budget" onClick={() => onGo('budget')}>
           <div className="between" style={{ marginBottom: 13 }}>
             <div>
@@ -115,66 +111,14 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
           <div className="cap">{tUi('home.budget', lang)} {formatMoney(budgetTotal, cur, fxRate)} · {usagePct}% {tUi('home.used', lang)}</div>
         </div>
 
-        <div className="gl pod">
-          <div className="label">{tUi('home.expectedLeft', lang)}</div>
-          <div className="num" style={{ fontSize: 24, fontWeight: 800, marginTop: 3 }}>{formatMoney(outlook.maxSavings, cur, fxRate)}</div>
-          <div className="between" style={{ marginTop: 12 }}>
-            <div>
-              <div className="label">{tUi('home.pendingIncome', lang)}</div>
-              <div className="num" style={{ fontWeight: 800, color: 'var(--aqua-d)', marginTop: 3 }}>+{formatMoney(outlook.pendingIncome, cur, fxRate)}</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div className="label">{tUi('home.pendingExpense', lang)}</div>
-              <div className="num" style={{ fontWeight: 800, color: '#cf743d', marginTop: 3 }}>−{formatMoney(outlook.pendingExpense, cur, fxRate)}</div>
-            </div>
-          </div>
-          {outlook.pendingSavingTransfer > 0 && <div className="cap">{tUi('home.pendingTransfer', lang)} {formatMoney(outlook.pendingSavingTransfer, cur, fxRate)}</div>}
+        {/* 2. 쓸 수 있는 돈 / 묶인 돈 / 총자산 */}
+        <div className="gl hero sm">
+          <div className="label">{tUi('home.available', lang)}</div>
+          <div className="big num">{formatMoney(heroDisplay, cur, fxRate)}</div>
+          <div className="cap">{tUi('home.setAside', lang)} {formatMoney(locked, cur, fxRate)} · {tUi('assets.total', lang)} {formatMoney(total, cur, fxRate)}</div>
         </div>
 
-        <div>
-          <div className="sect">{tUi('home.whereMoney', lang)}</div>
-          <div className="prows">
-            {spendableAccounts.map((a) => (
-              <div className="gl prow" key={a.id}>
-                <span className={'dot ' + colorClass(a.holder)}></span>
-                <div className="grow">
-                  <div className="aname">{accountTitle(a, lang)}</div>
-                  <div className="atype">{accountSubtitle(a, lang)}</div>
-                </div>
-                <div className="aval num">{formatMoney(a.balanceKrw, cur, fxRate)}</div>
-              </div>
-            ))}
-            <div className="gl prow held" data-go="assets" onClick={() => onGo('assets')}>
-              <span className="dot" style={{ background: '#aec8d0' }}></span>
-              <div className="grow">
-                <div className="aname">{tUi('home.savingMoney', lang)}</div>
-                <div className="atype">{tUi('home.savingsInvest', lang)}</div>
-              </div>
-              <div className="aval num">{formatMoney(locked, cur, fxRate)}</div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
-            <div className="sect" style={{ margin: 0, padding: 0 }}>{tUi('home.upcoming', lang)}</div>
-            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('schedule')}>{tUi('home.viewSchedule', lang)}</span>
-          </div>
-          <div className="hscroll">
-            {pending.length === 0 && <div className="cap">{tUi('home.allApplied', lang)}</div>}
-            {pending.map((r) => {
-              const sign = r.type === 'income' ? '+' : r.type === 'transfer' ? '→' : '−'
-              return (
-                <div className="gl due" key={r.id} onClick={() => onGo('schedule')}>
-                  <div className="wh">{recurringDaysLabel(r.daysOfMonth, lang)}</div>
-                  <div className="nm">{recurringTitle(r, lang)}</div>
-                  <div className={'m num ' + (r.type === 'income' ? 'm-in' : 'm-out')}>{sign}{formatMoney(r.amountKrw, cur, fxRate)}</div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
+        {/* 3. 최근 우리 지출 */}
         <div>
           <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
             <div className="sect" style={{ margin: 0, padding: 0 }}>{tUi('home.recent', lang)}</div>
@@ -200,6 +144,65 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
             })}
           </div>
         </div>
+
+        {/* 4. 이번 달 예상 저축 가능액 */}
+        <div className="gl pod">
+          <div className="label">{tUi('home.expectedLeft', lang)}</div>
+          <div className="num" style={{ fontSize: 24, fontWeight: 800, marginTop: 3 }}>{formatMoney(outlook.maxSavings, cur, fxRate)}</div>
+          <div className="between" style={{ marginTop: 12 }}>
+            <div>
+              <div className="label">{tUi('home.pendingIncome', lang)}</div>
+              <div className="num" style={{ fontWeight: 800, color: 'var(--aqua-d)', marginTop: 3 }}>+{formatMoney(outlook.pendingIncome, cur, fxRate)}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div className="label">{tUi('home.pendingExpense', lang)}</div>
+              <div className="num" style={{ fontWeight: 800, color: '#cf743d', marginTop: 3 }}>−{formatMoney(outlook.pendingExpense, cur, fxRate)}</div>
+            </div>
+          </div>
+          {outlook.pendingSavingTransfer > 0 && <div className="cap">{tUi('home.pendingTransfer', lang)} {formatMoney(outlook.pendingSavingTransfer, cur, fxRate)}</div>}
+        </div>
+
+        {/* 5. 우리 돈이 있는 곳 (상위 3개 요약) */}
+        <div>
+          <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
+            <div className="sect" style={{ margin: 0, padding: 0 }}>{tUi('home.whereMoney', lang)}</div>
+            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('assets')}>{tUi('home.viewAll', lang)}</span>
+          </div>
+          <div className="prows">
+            {topSpendable.map((a) => (
+              <div className="gl prow" key={a.id}>
+                <span className={'dot ' + colorClass(a.holder)}></span>
+                <div className="grow">
+                  <div className="aname">{accountTitle(a, lang)}</div>
+                  <div className="atype">{accountSubtitle(a, lang)}</div>
+                </div>
+                <div className="aval num">{formatMoney(a.balanceKrw, cur, fxRate)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 6. 예정 항목 (작게) */}
+        {pending.length > 0 && (
+          <div>
+            <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
+              <div className="sect" style={{ margin: 0, padding: 0 }}>{tUi('home.upcoming', lang)}</div>
+              <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('schedule')}>{tUi('home.viewSchedule', lang)}</span>
+            </div>
+            <div className="hscroll">
+              {pending.map((r) => {
+                const sign = r.type === 'income' ? '+' : r.type === 'transfer' ? '→' : '−'
+                return (
+                  <div className="gl due" key={r.id} onClick={() => onGo('schedule')}>
+                    <div className="wh">{recurringDaysLabel(r.daysOfMonth, lang)}</div>
+                    <div className="nm">{recurringTitle(r, lang)}</div>
+                    <div className={'m num ' + (r.type === 'income' ? 'm-in' : 'm-out')}>{sign}{formatMoney(r.amountKrw, cur, fxRate)}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

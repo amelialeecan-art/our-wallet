@@ -7,7 +7,7 @@ import {
 } from '../domain/calculations.ts'
 import { categoryLabel, colorClass, formatDateLabel, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { ScreenId } from '../types'
-import type { Transaction, TransactionType } from '../domain/types'
+import type { Transaction } from '../domain/types'
 
 interface Props {
   active: boolean
@@ -29,24 +29,33 @@ export default function TransactionsScreen({ active, onGo, onEdit }: Props) {
     .sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt))
   if (filter !== 'all') rows = rows.filter((t) => t.type === filter)
 
-  const typeSign = (type: TransactionType) => (type === 'income' ? '+' : type === 'expense' ? '−' : '')
+  const typeSign = (t: Transaction) => {
+    if (t.type === 'income') return '+'
+    if (t.type === 'expense') return '−'
+    if (t.type === 'adjustment') return t.toAccountId ? '+' : '−'
+    return '' // transfer
+  }
 
   const row = (t: Transaction) => {
     const ps = psById.get(t.paymentSourceId)
     const cls = colorClass(t.usedFor)
     const cat = categoryLabel(t.categoryId, db.categories, lang)
-    // 반복항목으로 생성된 거래는 출처 라벨을 함께 보여준다.
-    const recurringTag =
-      t.sourceKind === 'recurring'
-        ? t.type === 'income'
-          ? tUi('tx.recurringIncome', lang)
-          : t.type === 'transfer'
-            ? tUi('tx.savingsTransfer', lang)
-            : tUi('tx.fixedExpense', lang)
-        : null
+    // 거래 종류/출처 라벨
+    let leadLabel: string
+    if (t.sourceKind === 'recurring') {
+      leadLabel = t.type === 'income' ? tUi('tx.recurringIncome', lang) : t.type === 'transfer' ? tUi('tx.savingsTransfer', lang) : tUi('tx.fixedExpense', lang)
+    } else if (t.type === 'adjustment') {
+      leadLabel = tUi('tx.adjustment', lang)
+    } else if (t.type === 'income') {
+      leadLabel = tUi('tx.income', lang)
+    } else if (t.type === 'transfer') {
+      leadLabel = tUi('tx.transfer', lang)
+    } else {
+      leadLabel = cat
+    }
     const sub = [
-      recurringTag ?? cat,
-      ps ? paymentSourceTitle(ps, lang) : null,
+      leadLabel,
+      t.type === 'expense' && ps ? paymentSourceTitle(ps, lang) : null,
       tEnum('recordedBy', t.recordedBy, lang),
       formatDateLabel(t.date, lang),
     ]
@@ -59,11 +68,11 @@ export default function TransactionsScreen({ active, onGo, onEdit }: Props) {
     return (
       <div className="gl prow" key={t.id} onClick={() => onEdit(t.id)}>
         <div className="grow">
-          <div className="aname">{t.memo || cat}</div>
+          <div className="aname">{t.memo || leadLabel}</div>
           <div className="atype">{sub}</div>
         </div>
         <div className="r">
-          <div className="m num">{typeSign(t.type)}{formatMoney(t.amountKrw, displayCurrency, fxRate)}</div>
+          <div className="m num">{typeSign(t)}{formatMoney(t.amountKrw, displayCurrency, fxRate)}</div>
           {origSmall ? <div className="atype" style={{ textAlign: 'right' }}>{origSmall}</div> : <span className={'who ' + cls}><i></i>{tEnum('usedFor', t.usedFor, lang)}</span>}
         </div>
       </div>
