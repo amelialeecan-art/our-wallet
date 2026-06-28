@@ -13,9 +13,9 @@ import type {
   SettlementType,
 } from './types'
 
-function validSettlement(s: unknown, kind: PaymentKind): SettlementType {
+function validSettlement(s: unknown): SettlementType {
   if (s === 'immediate' || s === 'deferred' || s === 'none') return s
-  return kind === 'card' ? 'deferred' : 'immediate'
+  return 'immediate' // 기본 immediate (신용카드 미사용 전제)
 }
 
 function makeId(prefix: string): string {
@@ -104,7 +104,7 @@ export function createPaymentSource(input: NewPaymentSourceInput): PaymentSource
     holder: input.holder,
     currency: validCurrency(input.currency),
     linkedAccountId: input.linkedAccountId || undefined,
-    settlementType: validSettlement(input.settlementType, input.kind),
+    settlementType: validSettlement(input.settlementType),
     isActive: input.isActive ?? true,
   }
 }
@@ -122,7 +122,7 @@ export function applyPaymentSourcePatch(existing: PaymentSource, patch: PaymentS
     kind,
     currency: validCurrency(patch.currency ?? existing.currency),
     linkedAccountId: (patch.linkedAccountId ?? existing.linkedAccountId) || undefined,
-    settlementType: validSettlement(patch.settlementType ?? existing.settlementType, kind),
+    settlementType: validSettlement(patch.settlementType ?? existing.settlementType),
     isActive: patch.isActive ?? existing.isActive ?? true,
   }
 }

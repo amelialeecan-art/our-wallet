@@ -232,7 +232,12 @@ export default function AddScreen({ active, cur, setCur }: Props) {
           </div>
         )}
 
-        {/* 자주 쓰는 항목 (접힘, 저장 아래 우선순위) */}
+        {/* 저장 버튼: 일반 흐름 — 필수 항목 바로 아래 */}
+        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}>
+          <span>{mode === 'adjust' ? tUi('balance.save', lang) : tUi('common.save', lang)}</span>
+        </button>
+
+        {/* 자주 쓰는 항목 (저장 아래 접힘) */}
         {mode === 'expense' && activeQuickActions.length > 0 && (
           <details className="gl details">
             <summary><span>{tUi('add.quick', lang)}</span><span className="muted">＋</span></summary>
@@ -248,13 +253,6 @@ export default function AddScreen({ active, cur, setCur }: Props) {
             </div>
           </details>
         )}
-      </div>
-
-      {/* 저장 버튼: 탭바 위에 항상 고정 */}
-      <div style={{ position: 'sticky', bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))', zIndex: 4, marginTop: 12 }}>
-        <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}>
-          <span>{mode === 'adjust' ? tUi('balance.save', lang) : tUi('common.save', lang)}</span>
-        </button>
       </div>
     </section>
   )

@@ -38,7 +38,7 @@ export default function PaymentSourceEditScreen({ active, paymentSourceId, onDon
   const [holder, setHolder] = useState<HolderLabel>(existing?.holder ?? 'shared')
   const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'KRW')
   const [linkedAccountId, setLinkedAccountId] = useState<string>(existing?.linkedAccountId ?? '')
-  const [settlementType, setSettlementType] = useState<SettlementType>(existing?.settlementType ?? (existing?.kind === 'card' ? 'deferred' : 'immediate'))
+  const [settlementType, setSettlementType] = useState<SettlementType>(existing?.settlementType ?? 'immediate')
   const [isActive, setIsActive] = useState<boolean>(existing?.isActive ?? true)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
