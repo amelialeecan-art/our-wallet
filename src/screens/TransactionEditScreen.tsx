@@ -2,6 +2,7 @@ import { useState } from 'react'
 import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
+import { parseAmount, formatAmountDisplay, pressAmountKey, convertRaw } from '../lib/amountInput.ts'
 import { categoryLabel, colorClass, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { Currency } from '../types'
 import type { UsedFor } from '../domain/types'
@@ -25,7 +26,7 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function TransactionEditScreen({ active, txId, onDone }: Props) {
-  const { db, lang, updateTransaction, deleteTransaction } = useWallet()
+  const { db, lang, fxRate, updateTransaction, deleteTransaction } = useWallet()
   const tx = db.transactions.find((t) => t.id === txId)
 
   // tx별로 App에서 key를 주어 remount하므로 초기값을 그대로 써도 안전하다.
@@ -53,20 +54,19 @@ export default function TransactionEditScreen({ active, txId, onDone }: Props) {
     )
   }
 
-  const n = raw === '' ? 0 : parseInt(raw, 10)
+  const n = parseAmount(raw)
   const amtCur = currency === 'KRW' ? '₩' : '$'
-  const amtVal = n.toLocaleString(currency === 'KRW' ? 'ko-KR' : 'en-US')
+  const amtVal = formatAmountDisplay(raw, currency)
 
   function pressKey(k: string) {
-    setRaw((prev) => {
-      let next = prev
-      if (k === 'del') next = prev.slice(0, -1)
-      else if (k === '00') next = prev === '' ? '' : prev + '00'
-      else next = prev + k
-      next = next.replace(/^0+(?=\d)/, '')
-      if (next.length > 9) next = next.slice(0, 9)
-      return next
-    })
+    setRaw((prev) => pressAmountKey(prev, k, currency))
+  }
+
+  // 통화 토글 시 입력값 환산 (1500 KRW = 1 USD)
+  function changeCurrency(next: Currency) {
+    if (next === currency) return
+    setRaw((prev) => convertRaw(prev, currency, next, fxRate))
+    setCurrency(next)
   }
 
   function save() {
@@ -108,7 +108,7 @@ export default function TransactionEditScreen({ active, txId, onDone }: Props) {
         <div className="gl pod">
           <div className="between" style={{ marginBottom: 2 }}>
             <span className="label">{tUi('add.amount', lang)}</span>
-            <CurrencyToggle cur={currency} setCur={setCurrency} variant="text" />
+            <CurrencyToggle cur={currency} setCur={changeCurrency} variant="text" />
           </div>
           <div className={'amount' + (n === 0 ? ' empty' : '')} onClick={() => setKeypadOpen((o) => !o)}>
             <span className="cur">{amtCur}</span>
@@ -119,7 +119,7 @@ export default function TransactionEditScreen({ active, txId, onDone }: Props) {
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
               <button key={d} onClick={() => pressKey(d)}>{d}</button>
             ))}
-            <button onClick={() => pressKey('00')}>00</button>
+            {currency === 'USD' ? <button onClick={() => pressKey('.')}>.</button> : <button onClick={() => pressKey('00')}>00</button>}
             <button onClick={() => pressKey('0')}>0</button>
             <button onClick={() => pressKey('del')}>⌫</button>
           </div>
