@@ -31,7 +31,8 @@ export function formatKRW(krw: number): string {
 }
 
 export function formatUSD(krw: number): string {
-  return '$' + Math.round(krw / USD_TO_KRW).toLocaleString('en-US')
+  // 표시 전용: USD는 소수점 2자리(₩3,333 → $2.22). 저장값/계산은 변경하지 않음.
+  return '$' + (krw / USD_TO_KRW).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 // 원화 환산값(krw)을 받아 표시 통화에 맞게 포맷한다.

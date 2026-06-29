@@ -26,7 +26,9 @@ export function fromKrw(amountKrw: number, displayCurrency: Currency, fxRate: nu
 
 export function formatMoney(amountKrw: number, displayCurrency: Currency, fxRate: number): string {
   const v = fromKrw(amountKrw, displayCurrency, fxRate)
-  if (displayCurrency === 'USD') return '$' + Math.round(v).toLocaleString('en-US')
+  // USD는 소수점 2자리로 표시(₩3,333 → $2.22). KRW는 원 단위. 표시 전용 — 저장값은 그대로.
+  if (displayCurrency === 'USD')
+    return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return '₩' + Math.round(v).toLocaleString('ko-KR')
 }
 

@@ -135,7 +135,7 @@ h1,h2,h3,p{margin:0;}
 .btn.block{width:100%;}
 
 /* spending liquid circle */
-.liquid-wrap{display:flex;align-items:center;gap:18px;}
+.liquid-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;}
 .liquid{position:relative;width:150px;height:150px;flex:0 0 auto;border-radius:50%;overflow:hidden;
   background:rgba(255,255,255,.26);box-shadow:inset 0 3px 10px rgba(36,108,128,.12),0 10px 24px -16px rgba(14,86,104,.4),inset 0 0 0 1px rgba(255,255,255,.4);}
 .liquid .lq{position:absolute;left:-8%;right:-8%;bottom:0;height:0;
@@ -145,10 +145,10 @@ h1,h2,h3,p{margin:0;}
 .liquid .lq.hy{background:linear-gradient(180deg,rgba(176,208,246,.78),rgba(94,154,230,.82));}
 .liquid .lq.ta{background:linear-gradient(180deg,rgba(150,228,200,.78),rgba(34,190,144,.82));}
 .liquid::after{content:"";position:absolute;left:20%;top:13%;width:30px;height:13px;background:rgba(255,255,255,.7);border-radius:50%;filter:blur(3px);transform:rotate(-20deg);z-index:2;}
-.legend{display:flex;flex-direction:column;gap:11px;flex:1;}
-.legend .lg{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;}
-.legend .lg .k{width:11px;height:11px;border-radius:5px;}
-.legend .lg .p{margin-left:auto;color:var(--ink2);}
+.legend{display:flex;flex-direction:column;gap:11px;width:100%;}
+.legend .lg{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:700;min-width:0;}
+.legend .lg .k{width:11px;height:11px;border-radius:5px;flex:0 0 auto;}
+.legend .lg .p{margin-left:auto;padding-left:10px;color:var(--ink2);white-space:nowrap;}
 
 /* spending tabs */
 .tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px;margin:0 -2px;}
