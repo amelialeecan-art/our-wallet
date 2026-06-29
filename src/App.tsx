@@ -23,6 +23,7 @@ import QuickActionEditScreen from './screens/QuickActionEditScreen.tsx'
 import RecurringSettingsScreen from './screens/RecurringSettingsScreen.tsx'
 import RecurringEditScreen from './screens/RecurringEditScreen.tsx'
 import DataSettingsScreen from './screens/DataSettingsScreen.tsx'
+import ShareSettingsScreen from './screens/ShareSettingsScreen.tsx'
 import BalanceMatchScreen from './screens/BalanceMatchScreen.tsx'
 import { WalletProvider, useWallet } from './store/WalletProvider.tsx'
 import type { ScreenId } from './types'
@@ -101,6 +102,7 @@ function AppInner() {
       <RecurringSettingsScreen active={screen === 'recurringSettings'} onGo={go} onEdit={openRecEdit} />
       <RecurringEditScreen key={'rec-' + (editingRecId ?? 'new')} active={screen === 'recurringEdit'} recurringId={editingRecId} onDone={() => go('recurringSettings')} />
       <DataSettingsScreen active={screen === 'dataSettings'} onGo={go} />
+      <ShareSettingsScreen active={screen === 'shareSettings'} onGo={go} />
       <BalanceMatchScreen key={'bm-' + (adjustAccId ?? 'none')} active={screen === 'balanceMatch'} accountId={adjustAccId} onDone={() => go('assets')} />
 
       <TabBar screen={screen} onGo={go} />

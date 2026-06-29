@@ -48,6 +48,12 @@ export default function SettingsScreen({ active, onGo }: { active: boolean; onGo
           </div>
         </div>
         <div>
+          <div className="sect">{tUi('settings.shareGroup', lang)}</div>
+          <div className="prows">
+            <div className="gl prow" onClick={() => onGo('shareSettings')}><div className="st-t">{tUi('settings.share', lang)}</div><span className="chev">›</span></div>
+          </div>
+        </div>
+        <div>
           <div className="sect">{tUi('settings.dataGroup', lang)}</div>
           <div className="prows">
             <div className="gl prow" onClick={() => onGo('dataSettings')}><div className="st-t">{tUi('settings.data', lang)}</div><span className="chev">›</span></div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
+import { parseAmount, sanitizeAmountInput } from '../lib/amountInput.ts'
 import { tUi } from '../i18n/labels.ts'
 
 interface Props {
@@ -21,13 +22,22 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function CategoryEditScreen({ active, categoryId, onDone }: Props) {
-  const { db, lang, addCategory, updateCategory, setCategoryActive, deleteCategory } = useWallet()
+  const { db, lang, displayCurrency, fxRate, addCategory, updateCategory, setCategoryActive, deleteCategory } = useWallet()
   const existing = categoryId ? db.categories.find((c) => c.id === categoryId) : undefined
   const isNew = !categoryId
 
+  // 예산은 KRW로 저장하되, 입력/표시는 현재 표시통화 기준
+  const budgetSym = displayCurrency === 'KRW' ? '₩' : '$'
+  const initialBudget =
+    existing?.budgetMonthly != null
+      ? displayCurrency === 'USD'
+        ? String(Math.round((existing.budgetMonthly / fxRate) * 100) / 100)
+        : String(existing.budgetMonthly)
+      : ''
+
   const [nameKo, setNameKo] = useState(existing?.nameKo ?? '')
   const [nameEn, setNameEn] = useState(existing?.nameEn ?? '')
-  const [budget, setBudget] = useState(existing?.budgetMonthly != null ? String(existing.budgetMonthly) : '')
+  const [budget, setBudget] = useState(initialBudget)
   const [isActive, setIsActive] = useState(existing?.isActive ?? true)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -50,12 +60,16 @@ export default function CategoryEditScreen({ active, categoryId, onDone }: Props
       showToast(tUi('cat.nameRequired', lang))
       return
     }
-    const num = budget.trim() === '' ? undefined : Number(budget)
-    if (num != null && (!Number.isFinite(num) || num < 0)) {
-      showToast(tUi('cat.budgetInvalid', lang))
-      return
+    let budgetKrw: number | undefined
+    if (budget.trim() !== '') {
+      const num = parseAmount(budget)
+      if (!Number.isFinite(num) || num < 0) {
+        showToast(tUi('cat.budgetInvalid', lang))
+        return
+      }
+      budgetKrw = displayCurrency === 'USD' ? Math.round(num * fxRate) : Math.round(num)
     }
-    const input = { nameKo, nameEn, budgetMonthly: num, isActive }
+    const input = { nameKo, nameEn, budgetMonthly: budgetKrw, isActive }
     const ok = isNew ? addCategory(input) : updateCategory(categoryId!, input)
     if (!ok) {
       showToast(tUi('toast.saveFailed', lang))
@@ -92,7 +106,7 @@ export default function CategoryEditScreen({ active, categoryId, onDone }: Props
         <div className="gl pod">
           <div className="frow"><span>{tUi('acc.name', lang)}</span><input type="text" value={nameKo} placeholder={lang === 'ko' ? '예: 반려동물' : 'e.g. Pet'} onChange={(e) => setNameKo(e.target.value)} style={inputStyle} /></div>
           <div className="frow"><span>English</span><input type="text" value={nameEn} placeholder="e.g. Pet" onChange={(e) => setNameEn(e.target.value)} style={inputStyle} /></div>
-          <div className="frow"><span>{tUi('cat.budget', lang)}</span><input type="number" inputMode="numeric" min={0} value={budget} placeholder={tUi('common.none', lang)} onChange={(e) => setBudget(e.target.value)} style={inputStyle} /></div>
+          <div className="frow"><span>{tUi('cat.budget', lang)} ({budgetSym})</span><input type="text" inputMode="decimal" value={budget} placeholder={tUi('common.none', lang)} onChange={(e) => setBudget(sanitizeAmountInput(e.target.value, displayCurrency))} style={inputStyle} /></div>
         </div>
 
         <div className="gl pod">
