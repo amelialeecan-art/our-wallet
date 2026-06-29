@@ -406,6 +406,7 @@ const UI: Group = {
     en: 'Devices that open the same link share one live wallet. Send the link to Tanner so you can both record from your own phones.',
   },
   'share.status': { ko: '동기화 상태', en: 'Sync status' },
+  'share.lastError': { ko: '마지막 오류', en: 'Last error' },
   'share.status.local': { ko: '이 기기에만 저장', en: 'This device only' },
   'share.status.syncing': { ko: '저장 중…', en: 'Saving…' },
   'share.status.synced': { ko: '동기화됨', en: 'Synced' },

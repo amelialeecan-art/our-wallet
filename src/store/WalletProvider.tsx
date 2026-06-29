@@ -75,6 +75,17 @@ export type PaymentSourceDeleteResult = 'deleted' | 'used-in-tx' | 'is-default' 
 export type CategoryDeleteResult = 'deleted' | 'used-in-tx' | 'error'
 export type RecurringDeleteResult = 'deleted' | 'hidden' | 'error'
 
+// 동기화 오류 메시지 추출 (화면/콘솔 표시용)
+function errMsg(e: unknown): string {
+  if (e instanceof Error) return e.message
+  if (typeof e === 'string') return e
+  try {
+    return JSON.stringify(e)
+  } catch {
+    return '동기화 오류'
+  }
+}
+
 // 현재 역할 기준 기본 결제통로: 같은 보관자의 카드 → 같은 보관자의 통로 → 첫 통로
 function deriveDefaultPaymentSource(sources: PaymentSource[], role: Role | null): string | null {
   if (!role) return null
@@ -142,6 +153,7 @@ interface WalletContextValue {
   walletId: string | null
   shareUrl: string | null
   syncStatus: SyncStatus
+  syncError: string | null
   createSharedWallet: () => void
   uploadToShared: () => void
   reloadFromShared: () => void
@@ -173,6 +185,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
     firebaseReady && resolveInitialWalletId(loadDevice().lastWalletId) ? 'syncing' : 'local',
   )
+  // 마지막 동기화 오류 메시지 (원인 파악용). 성공 시 null로 비운다.
+  const [syncError, setSyncError] = useState<string | null>(null)
 
   // 최신 db 참조 (구독 콜백/저장에서 사용)
   const dbRef = useRef(db)
@@ -210,8 +224,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const current = dbRef.current
           lastSyncedJson.current = JSON.stringify(current)
           saveWallet(walletId, current, updatedBy)
-            .then(() => setSyncStatus('synced'))
-            .catch(() => setSyncStatus('offline'))
+            .then(() => {
+              setSyncStatus('synced')
+              setSyncError(null)
+            })
+            .catch((e) => {
+              setSyncStatus('offline')
+              setSyncError(errMsg(e))
+            })
           return
         }
         // 원격 db를 마이그레이션해 현재 스키마로 맞춤
@@ -222,8 +242,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           setDb(migrated)
         }
         setSyncStatus('synced')
+        setSyncError(null)
       },
-      () => setSyncStatus('offline'),
+      (e) => {
+        setSyncStatus('offline')
+        setSyncError(errMsg(e))
+      },
     )
     return unsub
     // device.role은 최초 구독 시점 값만 쓰면 충분 (updatedBy 라벨용)
@@ -239,8 +263,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(() => {
       lastSyncedJson.current = json
       saveWallet(walletId, db, device.role ?? 'unknown')
-        .then(() => setSyncStatus('synced'))
-        .catch(() => setSyncStatus('offline'))
+        .then(() => {
+          setSyncStatus('synced')
+          setSyncError(null)
+        })
+        .catch((e) => {
+          setSyncStatus('offline')
+          setSyncError(errMsg(e))
+        })
     }, 600)
     return () => clearTimeout(t)
   }, [db, walletId, device.role])
@@ -751,8 +781,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const json = JSON.stringify(db)
       lastSyncedJson.current = json
       saveWallet(walletId, db, device.role ?? 'unknown')
-        .then(() => setSyncStatus('synced'))
-        .catch(() => setSyncStatus('offline'))
+        .then(() => {
+          setSyncStatus('synced')
+          setSyncError(null)
+        })
+        .catch((e) => {
+          setSyncStatus('offline')
+          setSyncError(errMsg(e))
+        })
     }
     // 공동지갑에서 한번 다시 읽어와 로컬을 덮어씀.
     function reloadFromShared(): void {
@@ -766,8 +802,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             setDb(migrated)
           }
           setSyncStatus('synced')
+          setSyncError(null)
         })
-        .catch(() => setSyncStatus('offline'))
+        .catch((e) => {
+          setSyncStatus('offline')
+          setSyncError(errMsg(e))
+        })
     }
 
     return {
@@ -816,11 +856,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       walletId,
       shareUrl: walletId ? buildShareUrl(walletId) : null,
       syncStatus,
+      syncError,
       createSharedWallet,
       uploadToShared,
       reloadFromShared,
     }
-  }, [db, device, walletId, syncStatus])
+  }, [db, device, walletId, syncStatus, syncError])
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
 }

@@ -21,6 +21,7 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
     walletId,
     shareUrl,
     syncStatus,
+    syncError,
     createSharedWallet,
     uploadToShared,
     reloadFromShared,
@@ -96,6 +97,12 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
               <span className="mini">{role ? tEnum('role', role, lang) : '-'}</span>
             </div>
           </div>
+          {syncError && (
+            <div className="gl pod" style={{ marginTop: 8, background: 'rgba(207,116,61,.08)' }}>
+              <div className="cap" style={{ marginTop: 0, color: '#cf743d' }}>{tUi('share.lastError', lang)}</div>
+              <div className="num" style={{ wordBreak: 'break-all', fontSize: 12, color: '#cf743d' }}>{syncError}</div>
+            </div>
+          )}
         </div>
 
         {/* 공동지갑이 있을 때: 링크 / ID / 공유 */}
