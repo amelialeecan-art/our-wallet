@@ -3,8 +3,11 @@
 // 1단계에서는 역할/표시통화/언어 위주로 연결하고,
 // 거래 추가·수정 등 쓰기 액션은 다음 단계에서 확장한다.
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { firebaseReady } from '../firebase/config'
+import { loadWalletOnce, saveWallet, subscribeWallet } from '../firebase/walletSync'
+import { buildShareUrl, genWalletId, setWalletIdInUrl, walletIdFromUrl } from '../lib/walletId'
 import {
   loadDb,
   loadDevice,
@@ -134,7 +137,17 @@ interface WalletContextValue {
   replaceDatabaseFromBackup: (parsed: unknown) => boolean
   resetDatabaseToSeed: () => void
   resetData: () => void
+  // 공동지갑(Firestore) 동기화
+  firebaseReady: boolean
+  walletId: string | null
+  shareUrl: string | null
+  syncStatus: SyncStatus
+  createSharedWallet: () => void
+  uploadToShared: () => void
+  reloadFromShared: () => void
 }
+
+export type SyncStatus = 'local' | 'syncing' | 'synced' | 'offline'
 
 // 반복항목 반영 결과
 export type ApplyRecurringResult = 'applied' | 'already' | 'error'
@@ -153,6 +166,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<WalletDb>(() => loadDb())
   const [device, setDevice] = useState<DeviceState>(() => loadDevice())
 
+  // 공동지갑 연결 id: URL 우선, 없으면 마지막 연결 id
+  const [walletId, setWalletId] = useState<string | null>(
+    () => walletIdFromUrl() ?? loadDevice().lastWalletId ?? null,
+  )
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
+    firebaseReady && (walletIdFromUrl() ?? loadDevice().lastWalletId) ? 'syncing' : 'local',
+  )
+
+  // 최신 db 참조 (구독 콜백/저장에서 사용)
+  const dbRef = useRef(db)
+  dbRef.current = db
+  // 마지막으로 동기화된(원격과 동일한) db의 JSON. 에코 루프 방지용.
+  const lastSyncedJson = useRef<string | null>(null)
+
   // 변경 시 저장 (데이터 누락 방지)
   useEffect(() => {
     saveDb(db)
@@ -160,6 +187,63 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveDevice(device)
   }, [device])
+
+  // walletId가 바뀌면 주소창 쿼리 + 기기 기억값에 반영
+  useEffect(() => {
+    setWalletIdInUrl(walletId)
+    setDevice((prev) => (prev.lastWalletId === walletId ? prev : { ...prev, lastWalletId: walletId }))
+  }, [walletId])
+
+  // Firestore 실시간 구독
+  useEffect(() => {
+    if (!firebaseReady || !walletId) {
+      setSyncStatus('local')
+      return
+    }
+    setSyncStatus('syncing')
+    const updatedBy = device.role ?? 'unknown'
+    const unsub = subscribeWallet(
+      walletId,
+      (remote) => {
+        if (!remote) {
+          // 원격 문서 없음 → 현재 로컬 db를 최초 업로드
+          const current = dbRef.current
+          lastSyncedJson.current = JSON.stringify(current)
+          saveWallet(walletId, current, updatedBy)
+            .then(() => setSyncStatus('synced'))
+            .catch(() => setSyncStatus('offline'))
+          return
+        }
+        // 원격 db를 마이그레이션해 현재 스키마로 맞춤
+        const migrated = migrateDb(remote.db)
+        const json = JSON.stringify(migrated)
+        if (json !== lastSyncedJson.current) {
+          lastSyncedJson.current = json // setDb 전에 기록 → 쓰기 effect가 동일 비교로 스킵
+          setDb(migrated)
+        }
+        setSyncStatus('synced')
+      },
+      () => setSyncStatus('offline'),
+    )
+    return unsub
+    // device.role은 최초 구독 시점 값만 쓰면 충분 (updatedBy 라벨용)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletId])
+
+  // db 변경 시 원격에 디바운스 저장 (원격에서 받은 변경은 lastSyncedJson로 스킵)
+  useEffect(() => {
+    if (!firebaseReady || !walletId) return
+    const json = JSON.stringify(db)
+    if (json === lastSyncedJson.current) return
+    setSyncStatus('syncing')
+    const t = setTimeout(() => {
+      lastSyncedJson.current = json
+      saveWallet(walletId, db, device.role ?? 'unknown')
+        .then(() => setSyncStatus('synced'))
+        .catch(() => setSyncStatus('offline'))
+    }, 600)
+    return () => clearTimeout(t)
+  }, [db, walletId, device.role])
 
   const value = useMemo<WalletContextValue>(() => {
     // 역할 선택 시 기기 기본값(표시통화·언어)을 역할별 설정에서 가져온다. 소유권이 아니라 기본값일 뿐.
@@ -651,6 +735,39 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setDb(resetDb())
     }
 
+    // ----- 공동지갑(Firestore) -----
+    // 새 공동지갑 생성: 새 id를 만들고 현재 db를 그 지갑으로 연결. 구독 effect가 최초 업로드.
+    function createSharedWallet(): void {
+      if (!firebaseReady) return
+      lastSyncedJson.current = null
+      setWalletId(genWalletId())
+    }
+    // 현재 로컬 db를 공동지갑에 강제 업로드(덮어쓰기).
+    function uploadToShared(): void {
+      if (!firebaseReady || !walletId) return
+      setSyncStatus('syncing')
+      const json = JSON.stringify(db)
+      lastSyncedJson.current = json
+      saveWallet(walletId, db, device.role ?? 'unknown')
+        .then(() => setSyncStatus('synced'))
+        .catch(() => setSyncStatus('offline'))
+    }
+    // 공동지갑에서 한번 다시 읽어와 로컬을 덮어씀.
+    function reloadFromShared(): void {
+      if (!firebaseReady || !walletId) return
+      setSyncStatus('syncing')
+      loadWalletOnce(walletId)
+        .then((remote) => {
+          if (remote) {
+            const migrated = migrateDb(remote.db)
+            lastSyncedJson.current = JSON.stringify(migrated)
+            setDb(migrated)
+          }
+          setSyncStatus('synced')
+        })
+        .catch(() => setSyncStatus('offline'))
+    }
+
     return {
       db,
       device,
@@ -693,8 +810,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       replaceDatabaseFromBackup,
       resetDatabaseToSeed,
       resetData,
+      firebaseReady,
+      walletId,
+      shareUrl: walletId ? buildShareUrl(walletId) : null,
+      syncStatus,
+      createSharedWallet,
+      uploadToShared,
+      reloadFromShared,
     }
-  }, [db, device])
+  }, [db, device, walletId, syncStatus])
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
 }

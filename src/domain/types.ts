@@ -226,4 +226,5 @@ export interface DeviceState {
   role: Role | null
   displayCurrency: Currency
   lang: Lang
+  lastWalletId?: string | null // 마지막으로 연결한 공동지갑 id
 }
