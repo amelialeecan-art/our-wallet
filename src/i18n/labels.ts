@@ -419,6 +419,10 @@ const UI: Group = {
   'share.copyLink': { ko: '공유 링크 복사', en: 'Copy share link' },
   'share.copied': { ko: '링크를 복사했어요', en: 'Link copied' },
   'share.copyFailed': { ko: '복사에 실패했어요. 직접 복사해주세요', en: "Couldn't copy — copy it manually" },
+  'share.already': {
+    ko: '이미 공동지갑에 연결돼 있어요. 새로 만들 필요 없이 이 링크만 태너에게 공유하면 돼요.',
+    en: 'Already connected to a shared wallet. No need to create another — just share this link with Tanner.',
+  },
   'share.create': { ko: '공동지갑 만들기', en: 'Create shared wallet' },
   'share.createNote': {
     ko: '지금 이 기기의 데이터로 새 공동지갑을 만들어요. 만든 뒤 링크를 태너에게 보내세요.',

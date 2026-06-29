@@ -104,6 +104,7 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
             <div>
               <div className="sect">{tUi('share.link', lang)}</div>
               <div className="gl pod">
+                <div className="cap" style={{ marginTop: 0, marginBottom: 12 }}>{tUi('share.already', lang)}</div>
                 <div className="cap" style={{ marginTop: 0, marginBottom: 6 }}>{tUi('share.walletId', lang)}</div>
                 <div className="num" style={{ wordBreak: 'break-all', fontSize: 13, marginBottom: 12, color: 'var(--ink2)' }}>{walletId}</div>
                 <div

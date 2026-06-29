@@ -7,7 +7,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import type { ReactNode } from 'react'
 import { firebaseReady } from '../firebase/config'
 import { loadWalletOnce, saveWallet, subscribeWallet } from '../firebase/walletSync'
-import { buildShareUrl, genWalletId, setWalletIdInUrl, walletIdFromUrl } from '../lib/walletId'
+import { buildShareUrl, genWalletId, resolveInitialWalletId, setWalletIdInUrl } from '../lib/walletId'
 import {
   loadDb,
   loadDevice,
@@ -166,12 +166,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<WalletDb>(() => loadDb())
   const [device, setDevice] = useState<DeviceState>(() => loadDevice())
 
-  // 공동지갑 연결 id: URL 우선, 없으면 마지막 연결 id
-  const [walletId, setWalletId] = useState<string | null>(
-    () => walletIdFromUrl() ?? loadDevice().lastWalletId ?? null,
+  // 공동지갑 연결 id: URL 우선, 없으면 마지막 연결 id (PWA/홈화면 복구 포함)
+  const [walletId, setWalletId] = useState<string | null>(() =>
+    resolveInitialWalletId(loadDevice().lastWalletId),
   )
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
-    firebaseReady && (walletIdFromUrl() ?? loadDevice().lastWalletId) ? 'syncing' : 'local',
+    firebaseReady && resolveInitialWalletId(loadDevice().lastWalletId) ? 'syncing' : 'local',
   )
 
   // 최신 db 참조 (구독 콜백/저장에서 사용)
@@ -737,8 +737,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     // ----- 공동지갑(Firestore) -----
     // 새 공동지갑 생성: 새 id를 만들고 현재 db를 그 지갑으로 연결. 구독 effect가 최초 업로드.
+    // 이미 공동지갑에 연결돼 있으면 새로 만들지 않는다(실수로 기존 지갑과 분리되는 것 방지).
     function createSharedWallet(): void {
       if (!firebaseReady) return
+      if (walletId) return // 이미 공동지갑 사용 중 → 무시
       lastSyncedJson.current = null
       setWalletId(genWalletId())
     }
