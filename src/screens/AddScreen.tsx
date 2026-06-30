@@ -52,6 +52,9 @@ export default function AddScreen({ active, cur, setCur }: Props) {
   const [toId, setToId] = useState<string>(firstSaving)
   const [adjustId, setAdjustId] = useState<string>(firstSpendable)
   const [memo, setMemo] = useState('')
+  // 과거 입력(옵션): 빈 값이면 오늘. 지출/수입/이체에만 적용.
+  const today = new Date().toISOString().slice(0, 10)
+  const [date, setDate] = useState('')
 
   const adjustAcc = db.accounts.find((a) => a.id === adjustId)
   const inputCur: Currency = mode === 'adjust' ? (adjustAcc?.currency ?? 'KRW') : cur
@@ -92,6 +95,7 @@ export default function AddScreen({ active, cur, setCur }: Props) {
     setCatId(null)
     setUsedFor('shared')
     setPaymentSourceId(defaultPaymentSourceId)
+    setDate('')
   }
 
   function save() {
@@ -106,17 +110,18 @@ export default function AddScreen({ active, cur, setCur }: Props) {
       setRaw('')
       return
     }
+    const onDate = date || undefined // 빈 값이면 오늘(생성 함수 기본값)
     let input
     if (mode === 'income') {
       if (!depositId) { showToast(tUi('add.pickAccount', lang)); return }
-      input = { type: 'income' as const, amountOriginal: n, currency: cur, categoryId: 'other', usedFor: 'shared' as const, toAccountId: depositId, memo }
+      input = { type: 'income' as const, amountOriginal: n, currency: cur, categoryId: 'other', usedFor: 'shared' as const, toAccountId: depositId, memo, date: onDate }
     } else if (mode === 'transfer') {
       if (!fromId || !toId) { showToast(tUi('add.pickAccount', lang)); return }
       if (fromId === toId) { showToast(tUi('add.transferSame', lang)); return }
-      input = { type: 'transfer' as const, amountOriginal: n, currency: cur, categoryId: 'other', usedFor: 'shared' as const, fromAccountId: fromId, toAccountId: toId, memo }
+      input = { type: 'transfer' as const, amountOriginal: n, currency: cur, categoryId: 'other', usedFor: 'shared' as const, fromAccountId: fromId, toAccountId: toId, memo, date: onDate }
     } else {
       if (!selectedPs) { showToast(tUi('add.noPayment', lang)); return }
-      input = { type: 'expense' as const, amountOriginal: n, currency: cur, categoryId: catId ?? 'other', usedFor, paymentSourceId: selectedPs.id, memo }
+      input = { type: 'expense' as const, amountOriginal: n, currency: cur, categoryId: catId ?? 'other', usedFor, paymentSourceId: selectedPs.id, memo, date: onDate }
     }
     if (!addTransaction(input)) {
       showToast(tUi('toast.saveFailed', lang))
@@ -236,6 +241,23 @@ export default function AddScreen({ active, cur, setCur }: Props) {
         <button className="btn block" onClick={save} style={{ padding: 16, fontSize: 16 }}>
           <span>{mode === 'adjust' ? tUi('balance.save', lang) : tUi('common.save', lang)}</span>
         </button>
+
+        {/* 과거 입력 옵션 (저장 아래 접힘). 잔액 맞추기는 제외 */}
+        {mode !== 'adjust' && (
+          <details className="gl details">
+            <summary><span>{tUi('add.pastDate', lang)}</span><span className="muted">＋</span></summary>
+            <div className="body">
+              <div className="sect" style={{ paddingTop: 4 }}>{tUi('add.date', lang)}</div>
+              <input
+                type="date"
+                value={date || today}
+                max={today}
+                onChange={(e) => setDate(e.target.value)}
+                style={{ font: 'inherit', border: 0, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,255,255,.45)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)', color: 'var(--ink)' }}
+              />
+            </div>
+          </details>
+        )}
 
         {/* 자주 쓰는 항목 (저장 아래 접힘) */}
         {mode === 'expense' && activeQuickActions.length > 0 && (

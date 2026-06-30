@@ -8,7 +8,9 @@ import {
   getSpendingByCurrency,
   getSpendingByPaymentSource,
   getSpendingByUsedFor,
+  getTransactionsForMonth,
 } from '../domain/calculations.ts'
+import TransactionList from '../components/TransactionList.tsx'
 import {
   accountTitle,
   categoryLabel,
@@ -21,16 +23,21 @@ import type { Breakdown } from '../domain/calculations.ts'
 import type { Currency } from '../types'
 import type { Lang } from '../domain/types'
 
-type TabKey = 'who' | 'cat' | 'pay' | 'acc' | 'cur'
+type TabKey = 'records' | 'who' | 'cat' | 'pay' | 'acc' | 'cur'
 
-const TABS: TabKey[] = ['who', 'cat', 'pay', 'acc', 'cur']
+const TABS: TabKey[] = ['records', 'who', 'cat', 'pay', 'acc', 'cur']
 
-export default function SpendingScreen({ active }: { active: boolean }) {
+export default function SpendingScreen({ active, onEdit }: { active: boolean; onEdit: (id: string) => void }) {
   const ref = useRef<HTMLElement>(null)
-  const [tab, setTab] = useState<TabKey>('who')
+  const [tab, setTab] = useState<TabKey>('records')
 
   const { db, lang, displayCurrency, fxRate } = useWallet()
   const month = getActiveMonth(db)
+
+  // 거래내역 탭: 이번 달 전체 거래, 최신순
+  const records = getTransactionsForMonth(db.transactions, month)
+    .slice()
+    .sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt))
 
   const byUsedFor = getSpendingByUsedFor(db.transactions, month)
   const byCategory = getSpendingByCategory(db.transactions, month)
@@ -78,6 +85,12 @@ export default function SpendingScreen({ active }: { active: boolean }) {
           {TABS.map((t) => (
             <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{tUi('spending.tab.' + t, lang)}</button>
           ))}
+        </div>
+
+        <div className={'panel' + (tab === 'records' ? ' on' : '')}>
+          <div className="prows">
+            <TransactionList rows={records} onEdit={onEdit} />
+          </div>
         </div>
 
         <div className={'panel' + (tab === 'who' ? ' on' : '')}>

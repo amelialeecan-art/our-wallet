@@ -83,7 +83,7 @@ function AppInner() {
       <HomeScreen active={screen === 'home'} cur={displayCurrency} setCur={setDisplayCurrency} onGo={go} onEdit={openEdit} />
       <AddScreen active={screen === 'add'} cur={displayCurrency} setCur={setDisplayCurrency} />
       <AssetsScreen active={screen === 'assets'} cur={displayCurrency} onAdjust={openAdjust} />
-      <SpendingScreen active={screen === 'spending'} />
+      <SpendingScreen active={screen === 'spending'} onEdit={openEdit} />
       <BudgetScreen active={screen === 'budget'} />
       <ScheduleScreen active={screen === 'schedule'} onGo={go} />
       <SettingsScreen active={screen === 'settings'} onGo={go} />

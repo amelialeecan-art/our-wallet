@@ -177,6 +177,7 @@ const UI: Group = {
   'add.moreDetails': { ko: '자세히 입력하기', en: 'More details' },
   'add.paidWith': { ko: '결제 통로', en: 'Paid with' },
   'add.date': { ko: '날짜', en: 'Date' },
+  'add.pastDate': { ko: '과거 입력 / 옵션', en: 'Past date / Options' },
   'add.memo': { ko: '메모', en: 'Memo' },
   // 자산
   'assets.title': { ko: '우리 돈이 있는 곳', en: 'Where our money is' },
@@ -201,6 +202,7 @@ const UI: Group = {
   'pay.settlementNote': { ko: '신용카드는 ‘나중에’, 체크카드·현금·이체는 ‘즉시 차감’', en: 'Credit card = Deferred; debit/cash/transfer = Immediate' },
   // 지출 분석
   'spending.title': { ko: '누구를 위한 지출이었나요?', en: 'Who was the spending for?' },
+  'spending.tab.records': { ko: '거래내역', en: 'Records' },
   'spending.tab.who': { ko: '사용대상별', en: 'By whom' },
   'spending.tab.cat': { ko: '카테고리별', en: 'By category' },
   'spending.tab.pay': { ko: '결제수단별', en: 'By payment' },
