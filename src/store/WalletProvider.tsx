@@ -6,7 +6,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { firebaseReady } from '../firebase/config'
-import { loadWalletOnce, saveWallet, subscribeWallet } from '../firebase/walletSync'
+import { backupRemote, loadWalletOnce, saveWallet, subscribeWallet, type WalletDoc } from '../firebase/walletSync'
 import { buildShareUrl, genWalletId, resolveInitialWalletId, setWalletIdInUrl } from '../lib/walletId'
 import {
   loadDb,
@@ -154,12 +154,16 @@ interface WalletContextValue {
   shareUrl: string | null
   syncStatus: SyncStatus
   syncError: string | null
+  remoteUpdatedAt: number | null
+  remoteUpdatedBy: string | null
   createSharedWallet: () => void
   uploadToShared: () => void
   reloadFromShared: () => void
 }
 
-export type SyncStatus = 'local' | 'syncing' | 'synced' | 'offline'
+// local: 공동지갑 아님 / loading: 원격 불러오는 중(저장 금지) / synced: 원격과 동기화됨
+// syncing: 저장 중 / offline: 저장·구독 실패 / missing: 이 walletId의 원격 문서 없음
+export type SyncStatus = 'local' | 'loading' | 'synced' | 'syncing' | 'offline' | 'missing'
 
 // 반복항목 반영 결과
 export type ApplyRecurringResult = 'applied' | 'already' | 'error'
@@ -183,18 +187,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     resolveInitialWalletId(loadDevice().lastWalletId),
   )
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() =>
-    firebaseReady && resolveInitialWalletId(loadDevice().lastWalletId) ? 'syncing' : 'local',
+    firebaseReady && resolveInitialWalletId(loadDevice().lastWalletId) ? 'loading' : 'local',
   )
   // 마지막 동기화 오류 메시지 (원인 파악용). 성공 시 null로 비운다.
   const [syncError, setSyncError] = useState<string | null>(null)
+  // 원격 문서 메타 (UI 표시용): 마지막 원격 저장 시각/기기
+  const [remoteUpdatedAt, setRemoteUpdatedAt] = useState<number | null>(null)
+  const [remoteUpdatedBy, setRemoteUpdatedBy] = useState<string | null>(null)
 
   // 최신 db 참조 (구독 콜백/저장에서 사용)
   const dbRef = useRef(db)
   dbRef.current = db
   // 마지막으로 동기화된(원격과 동일한) db의 JSON. 에코 루프 방지용.
   const lastSyncedJson = useRef<string | null>(null)
+  // ===== 데이터 보호용 가드 =====
+  // 원격 하이드레이션 완료 여부. false면 절대 원격 저장 금지(빈/오래된 local이 remote 덮는 것 차단).
+  const remoteReadyRef = useRef(false)
+  // 직전에 본 원격 문서 전체 (저장 전 백업용)
+  const lastRemoteDocRef = useRef<WalletDoc | null>(null)
+  const lastRemoteRevisionRef = useRef(0)
+  // createSharedWallet로 "이 id를 새로 만든다"고 명시한 경우에만 최초 업로드 허용
+  const pendingCreateRef = useRef<string | null>(null)
 
-  // 변경 시 저장 (데이터 누락 방지)
+  // 변경 시 저장 (데이터 누락 방지) — localStorage는 항상 캐시로 저장
   useEffect(() => {
     saveDb(db)
   }, [db])
@@ -208,23 +223,51 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setDevice((prev) => (prev.lastWalletId === walletId ? prev : { ...prev, lastWalletId: walletId }))
   }, [walletId])
 
-  // Firestore 실시간 구독
+  // Firestore 실시간 구독 (remote-first 하이드레이션)
   useEffect(() => {
     if (!firebaseReady || !walletId) {
       setSyncStatus('local')
+      remoteReadyRef.current = false
       return
     }
-    setSyncStatus('syncing')
+    // 새 구독 시작 → 하이드레이션 전까지 저장 금지
+    remoteReadyRef.current = false
+    lastSyncedJson.current = null
+    lastRemoteDocRef.current = null
+    setSyncStatus('loading')
     const updatedBy = device.role ?? 'unknown'
     const unsub = subscribeWallet(
       walletId,
       (remote) => {
-        if (!remote) {
-          // 원격 문서 없음 → 현재 로컬 db를 최초 업로드
+        if (remote) {
+          // 원격 문서 존재 → 무조건 원격 우선. local이 비었든 오래됐든 remote를 적용.
+          const migrated = migrateDb(remote.db)
+          const json = JSON.stringify(migrated)
+          lastRemoteDocRef.current = remote
+          lastRemoteRevisionRef.current = remote.revision ?? 0
+          setRemoteUpdatedAt(remote.updatedAt ?? null)
+          setRemoteUpdatedBy(remote.updatedBy ?? null)
+          if (json !== lastSyncedJson.current) {
+            lastSyncedJson.current = json // setDb 전에 기록 → 쓰기 effect가 동일 비교로 스킵
+            setDb(migrated)
+          }
+          remoteReadyRef.current = true // 이제부터 사용자 변경만 저장 허용
+          setSyncStatus('synced')
+          setSyncError(null)
+          return
+        }
+        // 원격 문서 없음
+        if (pendingCreateRef.current === walletId) {
+          // 명시적 "공동지갑 만들기" 흐름에서만 현재 local db를 최초 업로드
+          pendingCreateRef.current = null
           const current = dbRef.current
           lastSyncedJson.current = JSON.stringify(current)
-          saveWallet(walletId, current, updatedBy)
+          saveWallet(walletId, current, updatedBy, 1)
             .then(() => {
+              remoteReadyRef.current = true
+              lastRemoteRevisionRef.current = 1
+              setRemoteUpdatedAt(Date.now())
+              setRemoteUpdatedBy(updatedBy)
               setSyncStatus('synced')
               setSyncError(null)
             })
@@ -234,15 +277,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             })
           return
         }
-        // 원격 db를 마이그레이션해 현재 스키마로 맞춤
-        const migrated = migrateDb(remote.db)
-        const json = JSON.stringify(migrated)
-        if (json !== lastSyncedJson.current) {
-          lastSyncedJson.current = json // setDb 전에 기록 → 쓰기 effect가 동일 비교로 스킵
-          setDb(migrated)
-        }
-        setSyncStatus('synced')
-        setSyncError(null)
+        // 기존 walletId인데 원격이 없음 → 자동 업로드 금지(빈 지갑 덮어쓰기 방지). 안내만.
+        remoteReadyRef.current = false
+        setSyncStatus('missing')
       },
       (e) => {
         setSyncStatus('offline')
@@ -254,23 +291,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletId])
 
-  // db 변경 시 원격에 디바운스 저장 (원격에서 받은 변경은 lastSyncedJson로 스킵)
+  // db 변경 시 원격에 디바운스 저장.
+  // 가드: 하이드레이션 전(remoteReady=false)에는 절대 저장하지 않는다 → 초기 local이 remote를 덮지 못함.
   useEffect(() => {
     if (!firebaseReady || !walletId) return
+    if (!remoteReadyRef.current) return // ★ 핵심: 원격 로드 전 저장 금지
     const json = JSON.stringify(db)
-    if (json === lastSyncedJson.current) return
+    if (json === lastSyncedJson.current) return // 원격에서 받은 변경/무변경은 스킵
     setSyncStatus('syncing')
-    const t = setTimeout(() => {
+    const t = setTimeout(async () => {
       lastSyncedJson.current = json
-      saveWallet(walletId, db, device.role ?? 'unknown')
-        .then(() => {
-          setSyncStatus('synced')
-          setSyncError(null)
-        })
-        .catch((e) => {
-          setSyncStatus('offline')
-          setSyncError(errMsg(e))
-        })
+      try {
+        // 저장 전 기존 원격 상태를 백업 (실패해도 본 저장 진행)
+        const prev = lastRemoteDocRef.current
+        if (prev) {
+          await backupRemote(walletId, prev).catch((e) => console.warn('[ourwallet] backupRemote failed:', e))
+        }
+        const nextRev = (lastRemoteRevisionRef.current ?? 0) + 1
+        await saveWallet(walletId, db, device.role ?? 'unknown', nextRev)
+        lastRemoteRevisionRef.current = nextRev
+        setRemoteUpdatedAt(Date.now())
+        setRemoteUpdatedBy(device.role ?? 'unknown')
+        setSyncStatus('synced')
+        setSyncError(null)
+      } catch (e) {
+        setSyncStatus('offline')
+        setSyncError(errMsg(e))
+      }
     }, 600)
     return () => clearTimeout(t)
   }, [db, walletId, device.role])
@@ -766,42 +813,63 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     // ----- 공동지갑(Firestore) -----
-    // 새 공동지갑 생성: 새 id를 만들고 현재 db를 그 지갑으로 연결. 구독 effect가 최초 업로드.
+    // 새 공동지갑 생성: 새 id를 만들고 현재 db를 그 지갑으로 연결.
+    // pendingCreateRef로 "이 id는 새로 만든다"고 표시 → 구독 effect가 원격 null일 때만 최초 업로드.
     // 이미 공동지갑에 연결돼 있으면 새로 만들지 않는다(실수로 기존 지갑과 분리되는 것 방지).
     function createSharedWallet(): void {
       if (!firebaseReady) return
       if (walletId) return // 이미 공동지갑 사용 중 → 무시
+      const id = genWalletId()
+      pendingCreateRef.current = id
+      remoteReadyRef.current = false
       lastSyncedJson.current = null
-      setWalletId(genWalletId())
+      setWalletId(id)
     }
-    // 현재 로컬 db를 공동지갑에 강제 업로드(덮어쓰기).
+    // 현재 로컬 db를 공동지갑에 강제 업로드(덮어쓰기) — 위험. 저장 전 원격 백업.
     function uploadToShared(): void {
       if (!firebaseReady || !walletId) return
       setSyncStatus('syncing')
       const json = JSON.stringify(db)
       lastSyncedJson.current = json
-      saveWallet(walletId, db, device.role ?? 'unknown')
-        .then(() => {
+      ;(async () => {
+        try {
+          const prev = lastRemoteDocRef.current
+          if (prev) {
+            await backupRemote(walletId, prev).catch((e) => console.warn('[ourwallet] backupRemote failed:', e))
+          }
+          const nextRev = (lastRemoteRevisionRef.current ?? 0) + 1
+          await saveWallet(walletId, db, device.role ?? 'unknown', nextRev)
+          remoteReadyRef.current = true
+          lastRemoteRevisionRef.current = nextRev
+          setRemoteUpdatedAt(Date.now())
+          setRemoteUpdatedBy(device.role ?? 'unknown')
           setSyncStatus('synced')
           setSyncError(null)
-        })
-        .catch((e) => {
+        } catch (e) {
           setSyncStatus('offline')
           setSyncError(errMsg(e))
-        })
+        }
+      })()
     }
     // 공동지갑에서 한번 다시 읽어와 로컬을 덮어씀.
     function reloadFromShared(): void {
       if (!firebaseReady || !walletId) return
-      setSyncStatus('syncing')
+      setSyncStatus('loading')
       loadWalletOnce(walletId)
         .then((remote) => {
           if (remote) {
             const migrated = migrateDb(remote.db)
             lastSyncedJson.current = JSON.stringify(migrated)
+            lastRemoteDocRef.current = remote
+            lastRemoteRevisionRef.current = remote.revision ?? 0
+            setRemoteUpdatedAt(remote.updatedAt ?? null)
+            setRemoteUpdatedBy(remote.updatedBy ?? null)
+            remoteReadyRef.current = true
             setDb(migrated)
+            setSyncStatus('synced')
+          } else {
+            setSyncStatus('missing')
           }
-          setSyncStatus('synced')
           setSyncError(null)
         })
         .catch((e) => {
@@ -857,11 +925,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       shareUrl: walletId ? buildShareUrl(walletId) : null,
       syncStatus,
       syncError,
+      remoteUpdatedAt,
+      remoteUpdatedBy,
       createSharedWallet,
       uploadToShared,
       reloadFromShared,
     }
-  }, [db, device, walletId, syncStatus, syncError])
+  }, [db, device, walletId, syncStatus, syncError, remoteUpdatedAt, remoteUpdatedBy])
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
 }

@@ -8,6 +8,7 @@ export interface WalletDoc {
   updatedAt: number
   updatedBy: string
   schemaVersion: number
+  revision?: number // 저장마다 +1 (순서/충돌 파악용)
 }
 
 // Firestore는 undefined 값을 거부한다(Unsupported field value: undefined).
@@ -53,9 +54,14 @@ export function subscribeWallet(
   )
 }
 
-export async function saveWallet(walletId: string, db: WalletDb, updatedBy: string): Promise<void> {
+export async function saveWallet(
+  walletId: string,
+  db: WalletDb,
+  updatedBy: string,
+  revision?: number,
+): Promise<void> {
   if (!firestore) throw new Error('firestore unavailable')
-  const payload: WalletDoc = { db, updatedAt: Date.now(), updatedBy, schemaVersion: db.version }
+  const payload: WalletDoc = { db, updatedAt: Date.now(), updatedBy, schemaVersion: db.version, revision }
   // undefined 제거 후 저장 (Firestore가 undefined를 거부하므로)
   const clean = sanitizeForFirestore(payload)
   try {
@@ -65,6 +71,24 @@ export async function saveWallet(walletId: string, db: WalletDb, updatedBy: stri
     console.error('[ourwallet] saveWallet failed:', e)
     throw e
   }
+}
+
+// 원격을 덮어쓰기 전에 기존 remote 문서를 백업한다.
+// 경로: wallets/{walletId}/backups/{timestamp}
+// 실패해도 본 저장을 막지 않는다(호출부에서 catch + console.warn).
+export async function backupRemote(walletId: string, prev: WalletDoc): Promise<void> {
+  if (!firestore) return
+  const ts = Date.now()
+  const payload = sanitizeForFirestore({
+    db: prev.db,
+    backedUpAt: ts,
+    reason: 'before-write',
+    previousUpdatedAt: prev.updatedAt ?? null,
+    previousUpdatedBy: prev.updatedBy ?? null,
+    schemaVersion: prev.schemaVersion ?? prev.db?.version ?? null,
+    revision: prev.revision ?? null,
+  })
+  await setDoc(doc(firestore, 'wallets', walletId, 'backups', String(ts)), payload)
 }
 
 export async function loadWalletOnce(walletId: string): Promise<WalletDoc | null> {

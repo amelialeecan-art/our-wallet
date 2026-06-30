@@ -22,6 +22,8 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
     shareUrl,
     syncStatus,
     syncError,
+    remoteUpdatedAt,
+    remoteUpdatedBy,
     createSharedWallet,
     uploadToShared,
     reloadFromShared,
@@ -96,7 +98,24 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
               <div className="grow"><div className="st-t">{tUi('share.role', lang)}</div></div>
               <span className="mini">{role ? tEnum('role', role, lang) : '-'}</span>
             </div>
+            {remoteUpdatedAt != null && (
+              <div className="gl prow">
+                <div className="grow"><div className="st-t">{tUi('share.remoteUpdatedAt', lang)}</div></div>
+                <span className="mini num">{new Date(remoteUpdatedAt).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US')}</span>
+              </div>
+            )}
+            {remoteUpdatedBy && (
+              <div className="gl prow">
+                <div className="grow"><div className="st-t">{tUi('share.remoteUpdatedBy', lang)}</div></div>
+                <span className="mini">{remoteUpdatedBy === 'hyeonsu' || remoteUpdatedBy === 'tanner' ? tEnum('role', remoteUpdatedBy, lang) : remoteUpdatedBy}</span>
+              </div>
+            )}
           </div>
+          {syncStatus === 'missing' && (
+            <div className="gl pod" style={{ marginTop: 8, background: 'rgba(207,116,61,.08)' }}>
+              <div className="cap" style={{ marginTop: 0, color: '#cf743d' }}>{tUi('share.missingNote', lang)}</div>
+            </div>
+          )}
           {syncError && (
             <div className="gl pod" style={{ marginTop: 8, background: 'rgba(207,116,61,.08)' }}>
               <div className="cap" style={{ marginTop: 0, color: '#cf743d' }}>{tUi('share.lastError', lang)}</div>
@@ -128,7 +147,7 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
               <div className="cap" style={{ marginTop: 0, color: '#cf743d' }}>{tUi('share.warn', lang)}</div>
             </div>
 
-            {/* 데이터 방향 */}
+            {/* 데이터 방향: 불러오기(안전) */}
             <div>
               <div className="sect">{tUi('common.manage', lang)}</div>
               <div className="gl pod">
@@ -141,7 +160,13 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
                     <button className="sel us" onClick={doReload}>{tUi('share.reload', lang)}</button>
                   </div>
                 )}
-                <div style={{ height: 14 }} />
+              </div>
+            </div>
+
+            {/* 덮어쓰기(위험): 기본 숨김 — 접어두고 강한 확인 */}
+            <details className="gl details">
+              <summary><span style={{ color: '#cf743d' }}>{tUi('share.dangerZone', lang)}</span><span className="muted">＋</span></summary>
+              <div className="body">
                 <div className="cap" style={{ marginTop: 0, marginBottom: 12 }}>{tUi('share.uploadNote', lang)}</div>
                 {!confirmUpload ? (
                   <button className="btn block" style={{ padding: 14 }} onClick={() => setConfirmUpload(true)}><span>{tUi('share.upload', lang)}</span></button>
@@ -152,7 +177,7 @@ export default function ShareSettingsScreen({ active, onGo }: Props) {
                   </div>
                 )}
               </div>
-            </div>
+            </details>
           </>
         )}
 
