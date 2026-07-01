@@ -12,17 +12,13 @@ import {
   getMonthlyExpenseTotal,
   getMonthlyOutlook,
   getPendingRecurring,
-  getRecentExpenses,
 } from '../domain/calculations.ts'
 import {
   accountSubtitle,
   accountTitle,
-  categoryLabel,
   colorClass,
-  paymentSourceTitle,
   recurringDaysLabel,
   recurringTitle,
-  tEnum,
   tUi,
 } from '../i18n/labels.ts'
 import type { Currency, ScreenId } from '../types'
@@ -32,10 +28,9 @@ interface Props {
   cur: Currency
   setCur: (c: Currency) => void
   onGo: (id: ScreenId) => void
-  onEdit: (id: string) => void
 }
 
-export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props) {
+export default function HomeScreen({ active, cur, setCur, onGo }: Props) {
   const ref = useRef<HTMLElement>(null)
   useScreenAnimations(ref, active)
 
@@ -51,8 +46,6 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
 
   const total = liquid + locked
   const topSpendable = db.accounts.filter((a) => a.tier === 'spendable').slice(0, 3)
-  const recent = getRecentExpenses(db.transactions, 3)
-  const psById = new Map(db.paymentSources.map((p) => [p.id, p]))
   const pending = getPendingRecurring(db, month).slice(0, 3)
   const outlook = getMonthlyOutlook(db, month)
 
@@ -117,34 +110,7 @@ export default function HomeScreen({ active, cur, setCur, onGo, onEdit }: Props)
           <div className="cap">{tUi('home.setAside', lang)} {formatMoney(locked, cur, fxRate)} · {tUi('assets.total', lang)} {formatMoney(total, cur, fxRate)}</div>
         </div>
 
-        {/* 3. 최근 우리 지출 */}
-        <div>
-          <div className="between" style={{ padding: '0 6px', marginBottom: 9 }}>
-            <div className="sect" style={{ margin: 0, padding: 0 }}>{tUi('home.recent', lang)}</div>
-            <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer' }} onClick={() => onGo('transactions')}>{tUi('home.viewAll', lang)}</span>
-          </div>
-          <div className="prows">
-            {recent.length === 0 && <div className="cap">{tUi('home.noRecords', lang)}</div>}
-            {recent.map((t) => {
-              const ps = psById.get(t.paymentSourceId)
-              const cls = colorClass(t.usedFor)
-              return (
-                <div className="gl prow" key={t.id} onClick={() => onEdit(t.id)}>
-                  <div className="grow">
-                    <div className="aname">{t.memo || categoryLabel(t.categoryId, db.categories, lang)}</div>
-                    <div className="atype">{categoryLabel(t.categoryId, db.categories, lang)}{ps ? ' · ' + paymentSourceTitle(ps, lang) : ''}</div>
-                  </div>
-                  <div className="r">
-                    <div className="m num">{formatMoney(t.amountKrw, cur, fxRate)}</div>
-                    <span className={'who ' + cls}><i></i>{tEnum('usedFor', t.usedFor, lang)}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 4. 이번 달 예상 저축 가능액 */}
+        {/* 3. 이번 달 예상 저축 가능액 */}
         <div className="gl pod">
           <div className="label">{tUi('home.expectedLeft', lang)}</div>
           <div className="num" style={{ fontSize: 24, fontWeight: 800, marginTop: 3 }}>{formatMoney(outlook.maxSavings, cur, fxRate)}</div>

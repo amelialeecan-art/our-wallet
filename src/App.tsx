@@ -9,7 +9,6 @@ import BudgetScreen from './screens/BudgetScreen.tsx'
 import ScheduleScreen from './screens/ScheduleScreen.tsx'
 import SettingsScreen from './screens/SettingsScreen.tsx'
 import RoleSelectScreen from './screens/RoleSelectScreen.tsx'
-import TransactionsScreen from './screens/TransactionsScreen.tsx'
 import TransactionEditScreen from './screens/TransactionEditScreen.tsx'
 import AccountsSettingsScreen from './screens/AccountsSettingsScreen.tsx'
 import AccountEditScreen from './screens/AccountEditScreen.tsx'
@@ -80,15 +79,14 @@ function AppInner() {
 
   return (
     <>
-      <HomeScreen active={screen === 'home'} cur={displayCurrency} setCur={setDisplayCurrency} onGo={go} onEdit={openEdit} />
+      <HomeScreen active={screen === 'home'} cur={displayCurrency} setCur={setDisplayCurrency} onGo={go} />
       <AddScreen active={screen === 'add'} cur={displayCurrency} setCur={setDisplayCurrency} />
       <AssetsScreen active={screen === 'assets'} cur={displayCurrency} onAdjust={openAdjust} />
       <SpendingScreen active={screen === 'spending'} onEdit={openEdit} />
       <BudgetScreen active={screen === 'budget'} />
       <ScheduleScreen active={screen === 'schedule'} onGo={go} />
       <SettingsScreen active={screen === 'settings'} onGo={go} />
-      <TransactionsScreen active={screen === 'transactions'} onGo={go} onEdit={openEdit} />
-      <TransactionEditScreen key={'tx-' + (editingTxId ?? 'none')} active={screen === 'txedit'} txId={editingTxId} onDone={() => go('transactions')} />
+      <TransactionEditScreen key={'tx-' + (editingTxId ?? 'none')} active={screen === 'txedit'} txId={editingTxId} onDone={() => go('spending')} />
 
       <AccountsSettingsScreen active={screen === 'accountsSettings'} onGo={go} onEdit={openAccountEdit} />
       <AccountEditScreen key={'acc-' + (editingAccountId ?? 'new')} active={screen === 'accountEdit'} accountId={editingAccountId} onDone={() => go('accountsSettings')} />

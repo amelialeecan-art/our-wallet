@@ -179,6 +179,7 @@ const UI: Group = {
   'add.date': { ko: '날짜', en: 'Date' },
   'add.pastDate': { ko: '과거 입력 / 옵션', en: 'Past date / Options' },
   'add.memo': { ko: '메모', en: 'Memo' },
+  'add.memoPlaceholder': { ko: '메모 선택', en: 'Optional memo' },
   // 자산
   'assets.title': { ko: '우리 돈이 있는 곳', en: 'Where our money is' },
   'assets.total': { ko: '우리 총자산', en: 'Our total assets' },

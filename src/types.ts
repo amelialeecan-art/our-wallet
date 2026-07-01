@@ -12,7 +12,6 @@ export type ScreenId =
   | 'budget'
   | 'schedule'
   | 'settings'
-  | 'transactions'
   | 'txedit'
   | 'accountsSettings'
   | 'accountEdit'
