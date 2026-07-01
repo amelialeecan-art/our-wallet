@@ -1,4 +1,4 @@
-// 거래 목록 렌더 (TransactionsScreen / Spending 거래내역 탭 공용).
+// 거래 목록 렌더 (Spending 거래내역 탭에서 사용).
 // 행 표시 로직 한 곳에서 관리. 집계/저장 로직은 건드리지 않는다.
 import { useWallet } from '../store/WalletProvider.tsx'
 import { formatMoney } from '../domain/calculations.ts'
@@ -8,14 +8,16 @@ import type { Transaction } from '../domain/types'
 export default function TransactionList({
   rows,
   onEdit,
+  emptyText,
 }: {
   rows: Transaction[]
   onEdit: (id: string) => void
+  emptyText?: string // 빈 상태 문구 (미지정 시 기본 'tx.empty')
 }) {
   const { db, displayCurrency, fxRate, lang } = useWallet()
   const psById = new Map(db.paymentSources.map((p) => [p.id, p]))
 
-  if (rows.length === 0) return <div className="cap">{tUi('tx.empty', lang)}</div>
+  if (rows.length === 0) return <div className="cap">{emptyText ?? tUi('tx.empty', lang)}</div>
 
   const typeSign = (t: Transaction) => {
     if (t.type === 'income') return '+'

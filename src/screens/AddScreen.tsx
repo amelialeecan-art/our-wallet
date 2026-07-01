@@ -247,7 +247,15 @@ export default function AddScreen({ active, cur, setCur }: Props) {
           <details className="gl details">
             <summary><span>{tUi('add.pastDate', lang)}</span><span className="muted">＋</span></summary>
             <div className="body">
-              <div className="sect" style={{ paddingTop: 4 }}>{tUi('add.date', lang)}</div>
+              <div className="sect" style={{ paddingTop: 4 }}>{tUi('add.memo', lang)}</div>
+              <input
+                type="text"
+                value={memo}
+                placeholder={tUi('add.memoPlaceholder', lang)}
+                onChange={(e) => setMemo(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', border: 0, borderRadius: 12, padding: '10px 12px', background: 'rgba(255,255,255,.45)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.35)', color: 'var(--ink)' }}
+              />
+              <div className="sect" style={{ paddingTop: 12 }}>{tUi('add.date', lang)}</div>
               <input
                 type="date"
                 value={date || today}

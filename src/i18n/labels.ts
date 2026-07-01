@@ -179,6 +179,7 @@ const UI: Group = {
   'add.date': { ko: '날짜', en: 'Date' },
   'add.pastDate': { ko: '과거 입력 / 옵션', en: 'Past date / Options' },
   'add.memo': { ko: '메모', en: 'Memo' },
+  'add.memoPlaceholder': { ko: '메모 선택', en: 'Optional memo' },
   // 자산
   'assets.title': { ko: '우리 돈이 있는 곳', en: 'Where our money is' },
   'assets.total': { ko: '우리 총자산', en: 'Our total assets' },
@@ -214,6 +215,8 @@ const UI: Group = {
   'spending.accTitle': { ko: '계좌별', en: 'By account' },
   'spending.curTitle': { ko: '통화별', en: 'By currency' },
   'spending.empty': { ko: '아직 지출 기록이 없어요', en: 'No spending yet' },
+  'spending.thisMonth': { ko: '이번 달', en: 'This month' },
+  'spending.noRecordsMonth': { ko: '이 달에는 기록이 없어요', en: 'No records for this month' },
   // 예산
   'budget.title': { ko: '이번 달 예산', en: "This month's budget" },
   'budget.usageRate': { ko: '사용률', en: 'Usage' },
