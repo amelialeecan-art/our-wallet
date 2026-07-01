@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useWallet } from '../store/WalletProvider.tsx'
 import {
   formatMoney,
-  getActiveMonth,
   getSpendingByAccount,
   getSpendingByCategory,
   getSpendingByCurrency,
@@ -27,12 +26,38 @@ type TabKey = 'records' | 'who' | 'cat' | 'pay' | 'acc' | 'cur'
 
 const TABS: TabKey[] = ['records', 'who', 'cat', 'pay', 'acc', 'cur']
 
+// 현재 달력 월 'YYYY-MM'
+function currentMonthStr(): string {
+  return new Date().toISOString().slice(0, 7)
+}
+
+// 'YYYY-MM'을 delta개월 이동
+function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+const EN_MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+// 표시 라벨: ko '2026년 7월' / en 'July 2026'
+function monthLabel(month: string, lang: Lang): string {
+  const [y, m] = month.split('-').map(Number)
+  if (lang === 'ko') return `${y}년 ${m}월`
+  return `${EN_MONTH_NAMES[m - 1] ?? ''} ${y}`
+}
+
 export default function SpendingScreen({ active, onEdit }: { active: boolean; onEdit: (id: string) => void }) {
   const ref = useRef<HTMLElement>(null)
   const [tab, setTab] = useState<TabKey>('records')
+  // 화면에서 보고 있는 월 (기본: 현재 달력 월). 저장/동기화와 무관한 화면 전용 state.
+  const [month, setMonth] = useState<string>(() => currentMonthStr())
 
   const { db, lang, displayCurrency, fxRate } = useWallet()
-  const month = getActiveMonth(db)
+  const thisMonth = currentMonthStr()
 
   // 거래내역 탭: 이번 달 전체 거래, 최신순
   const records = getTransactionsForMonth(db.transactions, month)
@@ -75,12 +100,25 @@ export default function SpendingScreen({ active, onEdit }: { active: boolean; on
       })
     }, 60)
     return () => clearTimeout(t)
-  }, [active, tab, db])
+  }, [active, tab, db, month])
 
   return (
     <section ref={ref} className={'screen' + (active ? ' active' : '')} id="spending">
       <div className="stack">
         <div className="head">{tUi('spending.title', lang)}</div>
+
+        {/* 월 네비게이션: 선택한 월 기준으로 아래 모든 탭이 필터링된다 */}
+        <div className="between" style={{ padding: '2px 4px', alignItems: 'center' }}>
+          <button className="chip" style={{ minWidth: 40 }} onClick={() => setMonth((m) => shiftMonth(m, -1))} aria-label="previous month">‹</button>
+          <div style={{ textAlign: 'center', lineHeight: 1.2 }}>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{monthLabel(month, lang)}</div>
+            {month !== thisMonth && (
+              <span className="label" style={{ color: 'var(--aqua-d)', cursor: 'pointer', fontSize: 12 }} onClick={() => setMonth(thisMonth)}>{tUi('spending.thisMonth', lang)}</span>
+            )}
+          </div>
+          <button className="chip" style={{ minWidth: 40 }} onClick={() => setMonth((m) => shiftMonth(m, 1))} aria-label="next month">›</button>
+        </div>
+
         <div className="tabs" id="spendTabs">
           {TABS.map((t) => (
             <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{tUi('spending.tab.' + t, lang)}</button>
@@ -89,7 +127,7 @@ export default function SpendingScreen({ active, onEdit }: { active: boolean; on
 
         <div className={'panel' + (tab === 'records' ? ' on' : '')}>
           <div className="prows">
-            <TransactionList rows={records} onEdit={onEdit} />
+            <TransactionList rows={records} onEdit={onEdit} emptyText={tUi('spending.noRecordsMonth', lang)} />
           </div>
         </div>
 

@@ -8,14 +8,16 @@ import type { Transaction } from '../domain/types'
 export default function TransactionList({
   rows,
   onEdit,
+  emptyText,
 }: {
   rows: Transaction[]
   onEdit: (id: string) => void
+  emptyText?: string // 빈 상태 문구 (미지정 시 기본 'tx.empty')
 }) {
   const { db, displayCurrency, fxRate, lang } = useWallet()
   const psById = new Map(db.paymentSources.map((p) => [p.id, p]))
 
-  if (rows.length === 0) return <div className="cap">{tUi('tx.empty', lang)}</div>
+  if (rows.length === 0) return <div className="cap">{emptyText ?? tUi('tx.empty', lang)}</div>
 
   const typeSign = (t: Transaction) => {
     if (t.type === 'income') return '+'

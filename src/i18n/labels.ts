@@ -214,6 +214,8 @@ const UI: Group = {
   'spending.accTitle': { ko: '계좌별', en: 'By account' },
   'spending.curTitle': { ko: '통화별', en: 'By currency' },
   'spending.empty': { ko: '아직 지출 기록이 없어요', en: 'No spending yet' },
+  'spending.thisMonth': { ko: '이번 달', en: 'This month' },
+  'spending.noRecordsMonth': { ko: '이 달에는 기록이 없어요', en: 'No records for this month' },
   // 예산
   'budget.title': { ko: '이번 달 예산', en: "This month's budget" },
   'budget.usageRate': { ko: '사용률', en: 'Usage' },
