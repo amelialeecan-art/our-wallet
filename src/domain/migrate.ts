@@ -194,6 +194,8 @@ function migrateRecurring(r: Partial<RecurringItem> & { direction?: string }, sa
     amountKrw,
     daysOfMonth: days.length ? days : [1],
     categoryId: r.categoryId,
+    // 기존 항목에 usedFor가 없으면 shared로 채운다 (데이터 삭제 없이 보강)
+    usedFor: r.usedFor === 'hyeonsu' || r.usedFor === 'tanner' ? r.usedFor : 'shared',
     paymentSourceId: r.paymentSourceId,
     accountId: r.accountId,
     active: r.active ?? true,

@@ -2,9 +2,9 @@ import { useState } from 'react'
 import CurrencyToggle from '../components/CurrencyToggle.tsx'
 import { showToast, triggerSaved } from '../lib/feedback.ts'
 import { useWallet } from '../store/WalletProvider.tsx'
-import { accountTitle, categoryLabel, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
+import { accountTitle, categoryLabel, colorClass, paymentSourceTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { Currency } from '../types'
-import type { RecurringType } from '../domain/types'
+import type { RecurringType, UsedFor } from '../domain/types'
 
 interface Props {
   active: boolean
@@ -13,6 +13,7 @@ interface Props {
 }
 
 const TYPES: RecurringType[] = ['income', 'expense', 'transfer']
+const USED_FOR: UsedFor[] = ['shared', 'hyeonsu', 'tanner']
 
 const inputStyle: React.CSSProperties = {
   font: 'inherit',
@@ -37,6 +38,7 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
   const [amount, setAmount] = useState(existing ? String(existing.amountOriginal) : '')
   const [days, setDays] = useState(existing ? existing.daysOfMonth.join(', ') : '')
   const [categoryId, setCategoryId] = useState<string>(existing?.categoryId ?? '')
+  const [usedFor, setUsedFor] = useState<UsedFor>(existing?.usedFor ?? 'shared')
   const [paymentSourceId, setPaymentSourceId] = useState<string>(existing?.paymentSourceId ?? '')
   const [accountId, setAccountId] = useState<string>(existing?.accountId ?? '')
   const [isActive, setIsActive] = useState(existing?.active ?? true)
@@ -83,6 +85,7 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
       currency,
       daysOfMonth: daysArr,
       categoryId: categoryId || undefined,
+      usedFor,
       paymentSourceId: paymentSourceId || undefined,
       accountId: accountId || undefined,
       active: isActive,
@@ -139,6 +142,15 @@ export default function RecurringEditScreen({ active, recurringId, onDone }: Pro
             <button className={'chip' + (categoryId === '' ? ' sel' : '')} onClick={() => setCategoryId('')}>{tUi('common.none', lang)}</button>
             {catOptions.map((c) => (
               <button key={c.id} className={'chip' + (categoryId === c.id ? ' sel' : '')} onClick={() => setCategoryId(c.id)}>{categoryLabel(c.id, db.categories, lang)}</button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="sect">{tUi('add.forWhom', lang)}</div>
+          <div className="seg3">
+            {USED_FOR.map((v) => (
+              <button key={v} className={usedFor === v ? 'sel ' + colorClass(v) : ''} onClick={() => setUsedFor(v)}>{tEnum('usedFor', v, lang)}</button>
             ))}
           </div>
         </div>

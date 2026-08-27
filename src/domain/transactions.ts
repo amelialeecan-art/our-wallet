@@ -124,7 +124,7 @@ export function createTransactionFromRecurring(
     amountKrw: toKrw(item.amountOriginal, item.currency, ctx.fxRate),
     date: ctx.date,
     categoryId: item.categoryId || 'other',
-    usedFor: 'shared', // 반복 수입·지출은 모두 '우리'
+    usedFor: item.usedFor ?? 'shared', // 반복항목에 지정된 사용대상 (기본 우리)
     paymentSourceId: item.paymentSourceId || '',
     accountId: item.accountId,
     fromAccountId: ctx.fromAccountId,

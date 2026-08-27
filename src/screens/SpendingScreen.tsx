@@ -7,6 +7,7 @@ import {
   getSpendingByCurrency,
   getSpendingByPaymentSource,
   getSpendingByUsedFor,
+  getSpendingByUsedForInCategory,
   getTransactionsForMonth,
 } from '../domain/calculations.ts'
 import TransactionList from '../components/TransactionList.tsx'
@@ -20,7 +21,7 @@ import {
 } from '../i18n/labels.ts'
 import type { Breakdown } from '../domain/calculations.ts'
 import type { Currency } from '../types'
-import type { Lang } from '../domain/types'
+import type { Lang, UsedFor } from '../domain/types'
 
 type TabKey = 'records' | 'who' | 'cat' | 'pay' | 'acc' | 'cur'
 
@@ -59,10 +60,14 @@ export default function SpendingScreen({ active, onEdit }: { active: boolean; on
   const { db, lang, displayCurrency, fxRate } = useWallet()
   const thisMonth = currentMonthStr()
 
-  // 거래내역 탭: 이번 달 전체 거래, 최신순
-  const records = getTransactionsForMonth(db.transactions, month)
+  // 선택 월 거래 (거래내역 탭 + 월 총지출/수입 요약에 공용)
+  const monthTx = getTransactionsForMonth(db.transactions, month)
+  const records = monthTx
     .slice()
     .sort((a, b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt))
+  // 월 총지출: type==='expense'만 (transfer/adjustment 제외). 월 수입: type==='income'
+  const totalExpense = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amountKrw, 0)
+  const totalIncome = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amountKrw, 0)
 
   const byUsedFor = getSpendingByUsedFor(db.transactions, month)
   const byCategory = getSpendingByCategory(db.transactions, month)
@@ -119,6 +124,13 @@ export default function SpendingScreen({ active, onEdit }: { active: boolean; on
           <button className="chip" style={{ minWidth: 40 }} onClick={() => setMonth((m) => shiftMonth(m, 1))} aria-label="next month">›</button>
         </div>
 
+        {/* 선택 월 총지출 요약 (탭 위) */}
+        <div className="gl pod">
+          <div className="label">{tUi('spending.totalSpending', lang)}</div>
+          <div className="num" style={{ fontSize: 26, fontWeight: 800, marginTop: 3 }}>{formatMoney(totalExpense, displayCurrency, fxRate)}</div>
+          <div className="cap">{tUi('spending.incomeSmall', lang)} {formatMoney(totalIncome, displayCurrency, fxRate)} · {tUi('spending.transfersExcluded', lang)}</div>
+        </div>
+
         <div className="tabs" id="spendTabs">
           {TABS.map((t) => (
             <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{tUi('spending.tab.' + t, lang)}</button>
@@ -158,6 +170,9 @@ export default function SpendingScreen({ active, onEdit }: { active: boolean; on
               fx={fxRate}
               rows={byCategory}
               labelOf={(b) => categoryLabel(b.key, db.categories, lang)}
+              drilldownOf={(b) => getSpendingByUsedForInCategory(db.transactions, b.key, month)}
+              subLabelOf={(s) => tEnum('usedFor', s.key, lang)}
+              subColorOf={(s) => colorClass(s.key as UsedFor)}
             />
           </div>
         </div>
@@ -212,6 +227,9 @@ function BreakdownList({
   rows,
   labelOf,
   colorOf,
+  drilldownOf,
+  subLabelOf,
+  subColorOf,
   lang,
   cur,
   fx,
@@ -219,20 +237,48 @@ function BreakdownList({
   rows: Breakdown[]
   labelOf: (b: Breakdown) => string
   colorOf?: (b: Breakdown) => 'us' | 'hy' | 'ta' | undefined
+  // 있으면 각 행을 눌러 사용대상별 분해를 inline으로 펼친다
+  drilldownOf?: (b: Breakdown) => Breakdown[]
+  subLabelOf?: (b: Breakdown) => string
+  subColorOf?: (b: Breakdown) => 'us' | 'hy' | 'ta' | undefined
   lang: Lang
   cur: Currency
   fx: number
 }) {
+  const [expanded, setExpanded] = useState<string | null>(null)
   if (rows.length === 0) return <div className="cap">{tUi('spending.empty', lang)}</div>
   return (
     <>
       {rows.map((b) => {
         const color = colorOf?.(b)
         const pct = Math.round(b.pct)
+        const canDrill = Boolean(drilldownOf)
+        const isOpen = expanded === b.key
+        const subs = canDrill && isOpen ? drilldownOf!(b).filter((s) => s.krw > 0) : []
         return (
           <div className="fillrow" key={b.key}>
-            <div className="fillhead"><span>{labelOf(b)}</span><span className="pct">{formatMoney(b.krw, cur, fx)} · {pct}%</span></div>
+            <div
+              className="fillhead"
+              style={canDrill ? { cursor: 'pointer' } : undefined}
+              onClick={canDrill ? () => setExpanded(isOpen ? null : b.key) : undefined}
+            >
+              <span>{canDrill ? (isOpen ? '⌄ ' : '› ') : ''}{labelOf(b)}</span>
+              <span className="pct">{formatMoney(b.krw, cur, fx)} · {pct}%</span>
+            </div>
             <div className="track"><div className={'fill' + (color ? ' ' + color : '')} data-w={Math.min(100, pct)}></div></div>
+            {subs.map((s) => (
+              <div
+                key={s.key}
+                className="cap"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, margin: 0, padding: '3px 4px 3px 22px' }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className={'dot ' + (subColorOf?.(s) ?? 'us')} style={{ width: 8, height: 8 }}></span>
+                  {subLabelOf ? subLabelOf(s) : s.key}
+                </span>
+                <span className="num">{formatMoney(s.krw, cur, fx)} · {Math.round(s.pct)}%</span>
+              </div>
+            ))}
           </div>
         )
       })}
