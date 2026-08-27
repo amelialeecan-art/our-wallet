@@ -184,6 +184,7 @@ export interface RecurringItem {
   amountKrw: number
   daysOfMonth: number[] // 매월 N일 (1~31)
   categoryId?: CategoryId | string
+  usedFor?: UsedFor // 반영 거래의 사용대상 (우리/현수/태너). 기본 shared
   paymentSourceId?: string
   accountId?: string
   active?: boolean // 기본 true. false면 Schedule/Home 예정에서 숨김

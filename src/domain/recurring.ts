@@ -2,7 +2,7 @@
 // 제목 누락·금액·통화·반복일(1~31) 검증. amountKrw는 고정환율로 재계산.
 
 import { toKrw } from './calculations'
-import type { Currency, RecurringItem, RecurringType } from './types'
+import type { Currency, RecurringItem, RecurringType, UsedFor } from './types'
 
 function makeId(prefix: string): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto
@@ -36,11 +36,16 @@ export interface NewRecurringInput {
   currency: Currency
   daysOfMonth: number[]
   categoryId?: string
+  usedFor?: UsedFor
   paymentSourceId?: string
   accountId?: string
   active?: boolean
 }
 export type RecurringPatch = Partial<NewRecurringInput>
+
+function validUsedFor(v: unknown): UsedFor {
+  return v === 'hyeonsu' || v === 'tanner' ? v : 'shared'
+}
 
 export function createRecurringItem(input: NewRecurringInput, fxRate: number): RecurringItem | null {
   const type = validType(input.type)
@@ -64,6 +69,7 @@ export function createRecurringItem(input: NewRecurringInput, fxRate: number): R
     amountKrw: toKrw(amountOriginal, currency, fxRate),
     daysOfMonth: days,
     categoryId: input.categoryId || undefined,
+    usedFor: validUsedFor(input.usedFor),
     paymentSourceId: input.paymentSourceId || undefined,
     accountId: input.accountId || undefined,
     active: input.active ?? true,
@@ -92,6 +98,7 @@ export function applyRecurringPatch(existing: RecurringItem, patch: RecurringPat
     amountKrw: toKrw(amountOriginal, currency, fxRate),
     daysOfMonth: days,
     categoryId: 'categoryId' in patch ? patch.categoryId || undefined : existing.categoryId,
+    usedFor: 'usedFor' in patch ? validUsedFor(patch.usedFor) : validUsedFor(existing.usedFor),
     paymentSourceId: 'paymentSourceId' in patch ? patch.paymentSourceId || undefined : existing.paymentSourceId,
     accountId: 'accountId' in patch ? patch.accountId || undefined : existing.accountId,
     active: patch.active ?? existing.active ?? true,

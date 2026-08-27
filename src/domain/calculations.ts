@@ -178,6 +178,17 @@ export function getSpendingByCategory(transactions: Transaction[], month: string
   return groupExpenses(transactions, month, (t) => t.categoryId)
 }
 
+// 특정 카테고리 안에서 사용대상별(우리/현수/태너) 지출 분해 (drilldown용).
+// 선택 월 · type==='expense'만. pct는 해당 카테고리 총액 기준.
+export function getSpendingByUsedForInCategory(
+  transactions: Transaction[],
+  categoryId: string,
+  month: string,
+): Breakdown[] {
+  const inCategory = transactions.filter((t) => t.categoryId === categoryId)
+  return groupExpenses(inCategory, month, (t) => t.usedFor)
+}
+
 export function getSpendingByPaymentSource(
   transactions: Transaction[],
   _paymentSources: PaymentSource[],

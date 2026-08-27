@@ -1,6 +1,6 @@
 import { useWallet } from '../store/WalletProvider.tsx'
 import { formatMoney } from '../domain/calculations.ts'
-import { accountTitle, categoryLabel, paymentSourceTitle, recurringDaysLabel, recurringTitle, tUi } from '../i18n/labels.ts'
+import { accountTitle, categoryLabel, paymentSourceTitle, recurringDaysLabel, recurringTitle, tEnum, tUi } from '../i18n/labels.ts'
 import type { RecurringItem } from '../domain/types'
 import type { ScreenId } from '../types'
 
@@ -26,6 +26,7 @@ export default function RecurringSettingsScreen({ active, onGo, onEdit }: Props)
     const sub = [
       recurringDaysLabel(r.daysOfMonth, lang),
       r.categoryId ? categoryLabel(r.categoryId, db.categories, lang) : null,
+      tEnum('usedFor', r.usedFor ?? 'shared', lang),
       ps ? paymentSourceTitle(ps, lang) : null,
       acc ? accountTitle(acc, lang) : null,
     ]
